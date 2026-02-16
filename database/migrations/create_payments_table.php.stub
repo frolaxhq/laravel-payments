@@ -6,14 +6,39 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up()
+    public function up(): void
     {
-        Schema::create('laravel_payments_table', function (Blueprint $table) {
-            $table->id();
-
-            // add fields
-
+        Schema::create(config('payments.tables.payments', 'payments'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->string('order_id');
+            $table->string('gateway_name');
+            $table->string('profile')->default('test');
+            $table->string('tenant_id')->nullable();
+            $table->string('status')->default('pending');
+            $table->decimal('amount', 16, 2);
+            $table->string('currency', 3);
+            $table->string('gateway_reference')->nullable();
+            $table->string('idempotency_key')->nullable();
+            $table->string('customer_email')->nullable();
+            $table->string('customer_phone')->nullable();
+            $table->json('canonical_payload')->nullable();
+            $table->json('metadata')->nullable();
             $table->timestamps();
+
+            $table->unique('idempotency_key');
+            $table->index('order_id');
+            $table->index('gateway_name');
+            $table->index('gateway_reference');
+            $table->index('status');
+            $table->index('tenant_id');
+            $table->index(['gateway_name', 'status']);
+            $table->index(['tenant_id', 'gateway_name', 'status']);
+            $table->index('customer_email');
         });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists(config('payments.tables.payments', 'payments'));
     }
 };
