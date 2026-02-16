@@ -12,6 +12,15 @@ use Frolax\Payment\Credentials\CompositeCredentialsRepository;
 use Frolax\Payment\Credentials\DatabaseCredentialsRepository;
 use Frolax\Payment\Credentials\EnvCredentialsRepository;
 use Frolax\Payment\Logging\PaymentLogger;
+use Frolax\Payment\Services\CurrencyConverter;
+use Frolax\Payment\Services\InvoiceGenerator;
+use Frolax\Payment\Services\RevenueAnalytics;
+use Frolax\Payment\Services\RiskScorer;
+use Frolax\Payment\Services\SandboxSimulator;
+use Frolax\Payment\Services\SchemaValidator;
+use Frolax\Payment\Services\TaxCalculator;
+use Frolax\Payment\Services\WebhookRetryPolicy;
+use Frolax\Payment\Services\WebhookRouter;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 
@@ -30,6 +39,16 @@ class PaymentServiceProvider extends PackageServiceProvider
                 'create_payment_webhook_events_table',
                 'create_payment_refunds_table',
                 'create_payment_logs_table',
+                'create_payment_subscriptions_table',
+                'create_payment_subscription_items_table',
+                'create_payment_subscription_usage_table',
+                'create_payment_methods_table',
+                'create_payment_invoicing_tables',
+                'create_payment_payout_tables',
+                'create_payment_fraud_tables',
+                'create_payment_coupon_tables',
+                'create_payment_exchange_rates_table',
+                'create_payment_links_table',
             ])
             ->hasRoute('web')
             ->hasCommands([
@@ -71,6 +90,17 @@ class PaymentServiceProvider extends PackageServiceProvider
                 logger: $app->make(PaymentLoggerContract::class),
             );
         });
+
+        // Register extended services
+        $this->app->singleton(InvoiceGenerator::class);
+        $this->app->singleton(TaxCalculator::class);
+        $this->app->singleton(RiskScorer::class);
+        $this->app->singleton(RevenueAnalytics::class);
+        $this->app->singleton(CurrencyConverter::class);
+        $this->app->singleton(WebhookRouter::class);
+        $this->app->singleton(WebhookRetryPolicy::class);
+        $this->app->singleton(SandboxSimulator::class);
+        $this->app->singleton(SchemaValidator::class);
     }
 
     public function packageBooted(): void

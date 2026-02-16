@@ -1,0 +1,48 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create(config('payments.tables.blocklist', 'payment_blocklist'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->string('type'); // email, ip, card_bin, phone
+            $table->string('value');
+            $table->string('reason')->nullable();
+            $table->json('metadata')->nullable();
+            $table->timestamp('expires_at')->nullable();
+            $table->timestamps();
+
+            $table->index('type');
+            $table->index(['type', 'value']);
+            $table->index('expires_at');
+        });
+
+        Schema::create(config('payments.tables.risk_assessments', 'payment_risk_assessments'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->string('payment_id')->nullable();
+            $table->unsignedInteger('score')->default(0);
+            $table->json('factors')->nullable();
+            $table->string('decision')->default('allow');  // allow, review, block
+            $table->string('ip_address')->nullable();
+            $table->string('email')->nullable();
+            $table->string('card_bin')->nullable();
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+
+            $table->index('payment_id');
+            $table->index('score');
+            $table->index('decision');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists(config('payments.tables.risk_assessments', 'payment_risk_assessments'));
+        Schema::dropIfExists(config('payments.tables.blocklist', 'payment_blocklist'));
+    }
+};
