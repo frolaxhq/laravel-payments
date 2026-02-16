@@ -5,15 +5,27 @@
 
 A production-grade, gateway-agnostic payment abstraction for Laravel. One canonical payload for every gateway—forever.
 
-## Features
+## ✨ Features
 
+### Core
 - **One Canonical Payload** — Same shape for every gateway, always
-- **Capability-Based Drivers** — Open/Closed: core never branches on gateway name
+- **Capability-Based Drivers** — Open/closed: core never branches on gateway name
 - **Auto-Discovery** — Install a gateway addon package, it works immediately
 - **Multi-Tenant Credentials** — ENV, database, or composite with priority & time windows
 - **Universal Webhooks** — Idempotent, replay-safe webhook/return/cancel endpoints
 - **Structured Logging** — Dot-notation, redacted, to DB + Laravel channels
 - **Full CLI** — Generate gateways, list drivers, sync credentials, replay webhooks
+
+### Extended (v2.0)
+- **Subscriptions** — Full lifecycle management with trial, pause, cancel, resume
+- **Invoicing** — Automated invoice generation with tax calculation and credit notes
+- **Payouts & Splits** — Marketplace-style payouts and split payments
+- **Coupons & Discounts** — Percentage/fixed discounts with usage tracking
+- **Multi-Currency** — Exchange rate management and on-the-fly conversion
+- **Fraud & Risk** — Risk scoring, blocklists, and 3D Secure support
+- **Analytics** — Revenue summaries, MRR/ARR, gateway success rates
+- **Developer Tools** — Payment links, sandbox simulator, schema validator
+- **Payment Methods** — Wallets, bank transfers, BNPL, QR codes, COD
 
 ## Installation
 
@@ -31,77 +43,69 @@ php artisan migrate
 
 ## Quick Start
 
+### Create a Payment
+
 ```php
 use Frolax\Payment\Facades\Payment;
 
-// Create a payment
 $result = Payment::gateway('stripe')->create([
-    'idempotency_key' => 'order-123-attempt-1',
-    'order' => [
-        'id' => 'ORD-123',
-        'description' => 'Premium Plan',
-        'items' => [
-            ['name' => 'Premium Plan', 'quantity' => 1, 'unit_price' => 2999],
-        ],
-    ],
-    'money' => ['amount' => 2999, 'currency' => 'USD'],
-    'customer' => [
-        'name' => 'John Doe',
-        'email' => 'john@example.com',
-        'phone' => '+1234567890',
-    ],
+    'order' => ['id' => 'ORD-123', 'description' => 'Premium Plan'],
+    'money' => ['amount' => 29.99, 'currency' => 'USD'],
+    'customer' => ['name' => 'John Doe', 'email' => 'john@example.com'],
     'urls' => [
-        'return' => 'https://myapp.com/payments/return/stripe',
-        'cancel' => 'https://myapp.com/payments/cancel/stripe',
-        'webhook' => 'https://myapp.com/payments/webhook/stripe',
+        'return' => route('payments.return', 'stripe'),
+        'cancel' => route('payments.cancel', 'stripe'),
+        'webhook' => route('payments.webhook', 'stripe'),
     ],
-    'metadata' => ['plan' => 'premium'],
 ]);
 
 if ($result->requiresRedirect()) {
     return redirect($result->redirectUrl);
 }
-
-// Verify from callback
-$result = Payment::gateway('stripe')->verifyFromRequest($request);
-
-// Refund (if supported)
-$result = Payment::gateway('stripe')->refund([
-    'payment_id' => 'PAY-001',
-    'money' => ['amount' => 1000, 'currency' => 'USD'],
-    'reason' => 'Customer request',
-]);
-
-// Query status (if supported)
-$result = Payment::gateway('stripe')->status([
-    'payment_id' => 'PAY-001',
-]);
 ```
 
-## Canonical Payload Shape
+### Create a Subscription
 
-Every gateway driver receives the same payload structure:
+```php
+$result = Payment::gateway('stripe')->subscribe([
+    'plan' => [
+        'id' => 'plan_pro',
+        'name' => 'Pro Plan',
+        'money' => ['amount' => 49.99, 'currency' => 'USD'],
+        'interval' => 'monthly',
+        'trial_days' => 14,
+    ],
+    'customer' => ['name' => 'Jane Doe', 'email' => 'jane@example.com'],
+    'urls' => ['return' => route('billing.return')],
+]);
 
-| Key | Type | Required |
-|-----|------|----------|
-| `idempotency_key` | string | Auto-generated if not provided |
-| `order.id` | string | ✓ |
-| `order.description` | string | |
-| `order.items[]` | array | |
-| `money.amount` | number | ✓ |
-| `money.currency` | string | ✓ |
-| `customer.name` | string | |
-| `customer.email` | string | |
-| `customer.phone` | string | |
-| `customer.address.*` | object | |
-| `urls.return` | string | |
-| `urls.cancel` | string | |
-| `urls.webhook` | string | |
-| `context.ip` | string | |
-| `context.user_agent` | string | |
-| `context.locale` | string | |
-| `metadata` | object | Freeform |
-| `extra` | object | Driver-only overrides |
+// Lifecycle
+Payment::gateway('stripe')->cancelSubscription($subId);
+Payment::gateway('stripe')->pauseSubscription($subId);
+Payment::gateway('stripe')->resumeSubscription($subId);
+```
+
+### Apply a Coupon
+
+```php
+use Frolax\Payment\Models\Coupon;
+
+$coupon = Coupon::where('code', 'SAVE20')->first();
+
+if ($coupon->isValid(orderAmount: 75.00)) {
+    $discount = $coupon->calculate(75.00); // 15.00
+}
+```
+
+### Convert Currencies
+
+```php
+use Frolax\Payment\Services\CurrencyConverter;
+
+$converter = app(CurrencyConverter::class);
+$result = $converter->convert(100.00, 'USD', 'EUR');
+// ['converted_amount' => 92.50, 'rate' => 0.925, ...]
+```
 
 ## Runtime Selectors
 
@@ -132,90 +136,39 @@ Drivers implement `GatewayDriverContract` plus optional capability interfaces:
 | `SupportsWebhookVerification` | Webhook signature verification |
 | `SupportsRefund` | Refund processing |
 | `SupportsStatusQuery` | Payment status queries |
-| `SupportsTokenization` | Saved payment methods (future) |
-| `SupportsInstallments` | EMI/installment plans (future) |
+| `SupportsRecurring` | Subscription lifecycle |
+| `SupportsTokenization` | Saved payment methods |
+| `SupportsPayout` | Marketplace payouts |
+| `SupportsThreeDSecure` | 3D Secure authentication |
+| `SupportsWallets` | Apple Pay, Google Pay |
+| `SupportsBankTransfer` | Wire/bank transfers |
+| `SupportsBuyNowPayLater` | Klarna, Afterpay, Tabby |
+| `SupportsQRCode` | QR-based payments |
+| `SupportsCOD` | Cash on delivery |
+| `SupportsInstallments` | EMI/installment plans |
 
 ## Creating a Gateway
 
-### Generate inline (in your app):
-
 ```bash
+# Inline (in your app)
 php artisan payments:make-gateway Bkash \
-    --key=bkash \
-    --display="bKash" \
+    --key=bkash --display="bKash" \
     --capabilities=redirect,webhook,refund \
-    --credentials=key:required,secret:required,webhook_secret:optional
-```
+    --credentials=key:required,secret:required
 
-### Generate as addon package:
-
-```bash
+# As addon package
 php artisan payments:make-gateway Bkash --addon \
-    --key=bkash \
-    --display="bKash" \
+    --key=bkash --display="bKash" \
     --capabilities=redirect,webhook,refund
 ```
-
-Addon packages auto-register via Laravel package auto-discovery. Zero manual registration.
-
-## Credential Configuration
-
-### ENV-based (config/payments.php):
-
-```php
-'gateways' => [
-    'stripe' => [
-        'test' => [
-            'key' => env('STRIPE_TEST_KEY'),
-            'secret' => env('STRIPE_TEST_SECRET'),
-            'webhook_secret' => env('STRIPE_TEST_WEBHOOK_SECRET'),
-        ],
-        'live' => [
-            'key' => env('STRIPE_LIVE_KEY'),
-            'secret' => env('STRIPE_LIVE_SECRET'),
-            'webhook_secret' => env('STRIPE_LIVE_WEBHOOK_SECRET'),
-        ],
-    ],
-],
-```
-
-### Database-based:
-
-Set `PAYMENT_CREDENTIAL_STORAGE=database` or `composite` (DB first, fallback to ENV).
-
-The `payment_gateway_credentials` table supports:
-- Tenant isolation (`tenant_id`)
-- Profiles (`test`/`live`)
-- Time windows (`effective_from`/`effective_to`)
-- Priority-based rotation
-- Encrypted credential storage
-
-## Webhook Endpoints
-
-Default routes (configurable prefix/middleware):
-
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/payments/webhook/{gateway}` | Receive gateway webhooks |
-| GET | `/payments/return/{gateway}` | Payment return callback |
-| GET | `/payments/cancel/{gateway}` | Payment cancel callback |
-
-Webhooks are idempotent and replay-safe.
 
 ## CLI Commands
 
 ```bash
-# List all discovered gateways
-php artisan payments:gateways
-
-# Generate a gateway driver skeleton
-php artisan payments:make-gateway {name} [--addon] [--capabilities=...] [--credentials=...]
-
-# Validate credentials exist
-php artisan payments:credentials:sync [--gateway=...] [--profile=...] [--tenant=...]
-
-# Replay a stored webhook event
-php artisan payments:webhooks:replay {webhook_event_id}
+php artisan payments:gateways                    # List all gateways
+php artisan payments:make-gateway {name}         # Generate driver
+php artisan payments:credentials:sync            # Validate credentials
+php artisan payments:webhooks:replay {id}        # Replay webhook
 ```
 
 ## Events
@@ -228,35 +181,31 @@ php artisan payments:webhooks:replay {webhook_event_id}
 | `PaymentCancelled` | Payment cancelled by user |
 | `PaymentRefundRequested` | Refund initiated |
 | `PaymentRefunded` | Refund completed |
+| `SubscriptionCreated` | Subscription created |
+| `SubscriptionRenewed` | Subscription renewed |
+| `SubscriptionCancelled` | Subscription cancelled |
+| `SubscriptionPaused` | Subscription paused |
+| `SubscriptionResumed` | Subscription resumed |
+| `SubscriptionTrialEnding` | Trial ending soon |
+| `PaymentMethodSaved` | Payment method saved |
+| `PaymentMethodDeleted` | Payment method deleted |
 | `WebhookReceived` | Webhook received from gateway |
 
 ## Database Tables
 
-All tables use ULID primary keys:
+All tables use ULID primary keys and configurable table names:
 
-- `payment_gateways` — Gateway definitions
-- `payment_gateway_credentials` — Encrypted credentials with tenant/profile/time windows
-- `payments` — Canonical payment records
-- `payment_attempts` — Per-create attempt history
-- `payment_webhook_events` — Raw webhook storage (replay-safe)
-- `payment_refunds` — Refund lifecycle
-- `payment_logs` — Structured dot-notation logs
+**Core:** `payment_gateways`, `payment_gateway_credentials`, `payments`, `payment_attempts`, `payment_webhook_events`, `payment_refunds`, `payment_logs`
 
-## Logging
+**Extended:** `payment_subscriptions`, `payment_subscription_items`, `payment_subscription_usage`, `payment_methods`, `payment_invoices`, `payment_invoice_items`, `payment_credit_notes`, `payment_tax_rates`, `payment_payouts`, `payment_payout_recipients`, `payment_splits`, `payment_blocklist`, `payment_risk_assessments`, `payment_coupons`, `payment_coupon_usages`, `payment_exchange_rates`, `payment_links`
 
-Configurable verbosity: `off | errors_only | basic | verbose | debug`
+## Documentation
 
-Logs are automatically redacted (secrets, tokens, card data) and written to both Laravel log channels and the `payment_logs` database table with dot-notation keys.
+Full documentation available at [docs site](https://frolaxhq.github.io/laravel-payments):
 
-## For Gateway Addon Authors
-
-1. Create a package that extends `GatewayAddonServiceProvider`
-2. Implement `GatewayAddonContract`
-3. Implement `GatewayDriverContract` + capability interfaces
-4. Add Laravel auto-discovery to `composer.json`
-5. Users install with `composer require` — gateway works immediately
-
-Use `php artisan payments:make-gateway {name} --addon` to generate the full scaffold.
+- [Guide](docs/guide/) — Getting started, core concepts, usage, extending
+- [Reference](docs/reference/) — Configuration, database schema, CLI, env vars
+- [API Reference](docs/api/) — Contracts, DTOs, enums, events, models
 
 ## Testing
 
@@ -264,7 +213,7 @@ Use `php artisan payments:make-gateway {name} --addon` to generate the full scaf
 composer test
 ```
 
-Tests use Orchestra Testbench with in-memory SQLite.
+128 tests, 286 assertions. Tests use Orchestra Testbench with in-memory SQLite.
 
 ## License
 
