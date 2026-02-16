@@ -21,6 +21,7 @@ jobs:
       - name: Update Changelog
         uses: stefanzweifel/changelog-updater-action@v1
         with:
+          path: docs/changelog.md
           latest-version: ${{ github.event.release.name }}
           release-notes: ${{ github.event.release.body }}
 
@@ -29,4 +30,4 @@ jobs:
         with:
           branch: main
           commit_message: Update CHANGELOG
-          file_pattern: CHANGELOG.md
+          file_pattern: docs/changelog.md
