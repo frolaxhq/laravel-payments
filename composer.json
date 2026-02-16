@@ -1,6 +1,6 @@
 {
     "name": "frolaxhq/laravel-payments",
-    "description": "This is my package laravel-payments",
+    "description": "A comprehensive payment processing package for Laravel, supporting multiple gateways, subscriptions, invoices, fraud detection, and more.",
     "keywords": [
         "Frolax",
         "laravel",
