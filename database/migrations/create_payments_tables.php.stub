@@ -1,0 +1,486 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // 1. Gateways
+        Schema::create(config('payments.tables.gateways', 'payment_gateways'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->string('name')->unique();
+            $table->string('driver');
+            $table->boolean('is_active')->default(true);
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+        });
+
+        // 2. Gateway Credentials
+        Schema::create(config('payments.tables.credentials', 'payment_gateway_credentials'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->foreignUlid('gateway_id')->constrained(config('payments.tables.gateways', 'payment_gateways'))->cascadeOnDelete();
+            $table->string('profile')->default('default');
+            $table->json('credentials');
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+
+            $table->unique(['gateway_id', 'profile']);
+        });
+
+        // 3. Payment Methods
+        Schema::create(config('payments.tables.methods', 'payment_methods'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->string('gateway_name');
+            $table->string('customer_id')->nullable();
+            $table->string('gateway_method_id');
+            $table->string('type')->default('card');
+            $table->json('details')->nullable();
+            $table->boolean('is_default')->default(false);
+            $table->timestamp('last_used_at')->nullable();
+            $table->timestamp('expires_at')->nullable();
+            $table->timestamps();
+
+            $table->index('gateway_name');
+            $table->index('customer_id');
+            $table->index('gateway_method_id');
+        });
+
+        // 4. Payments
+        Schema::create(config('payments.tables.payments', 'payments'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->string('order_id');
+            $table->string('gateway_name');
+            $table->string('profile')->default('test');
+            $table->string('tenant_id')->nullable();
+            $table->string('status')->default('pending');
+            $table->decimal('amount', 16, 2);
+            $table->string('currency', 3);
+            $table->string('gateway_reference')->nullable();
+            $table->string('idempotency_key')->nullable();
+            $table->string('customer_email')->nullable();
+            $table->string('customer_phone')->nullable();
+            $table->json('canonical_payload')->nullable();
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+
+            $table->unique('idempotency_key');
+            $table->index('order_id');
+            $table->index('gateway_name');
+            $table->index('gateway_reference');
+            $table->index('status');
+            $table->index('tenant_id');
+            $table->index(['gateway_name', 'status']);
+            $table->index(['tenant_id', 'gateway_name', 'status']);
+            $table->index('customer_email');
+        });
+
+        // 5. Payment Attempts
+        Schema::create(config('payments.tables.attempts', 'payment_attempts'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->ulid('payment_id');
+            $table->unsignedInteger('attempt_no')->default(1);
+            $table->string('status')->default('initiated');
+            $table->string('gateway_reference')->nullable();
+            $table->json('request_payload')->nullable();
+            $table->json('response_payload')->nullable();
+            $table->json('errors')->nullable();
+            $table->decimal('duration_ms', 10, 2)->nullable();
+            $table->timestamps();
+
+            $table->foreign('payment_id')
+                ->references('id')
+                ->on(config('payments.tables.payments', 'payments'))
+                ->cascadeOnDelete();
+
+            $table->index(['payment_id', 'attempt_no']);
+            $table->index('status');
+        });
+
+        // 6. Payment Logs
+        Schema::create(config('payments.tables.logs', 'payment_logs'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->ulid('payment_id')->nullable();
+            $table->string('gateway_name')->nullable();
+            $table->string('event');
+            $table->string('level')->default('info');
+            $table->json('payload')->nullable();
+            $table->timestamps();
+
+            $table->foreign('payment_id')
+                ->references('id')
+                ->on(config('payments.tables.payments', 'payments'))
+                ->nullOnDelete();
+
+            $table->index('gateway_name');
+            $table->index('event');
+            $table->index('level');
+        });
+
+        // 7. Refunds
+        Schema::create(config('payments.tables.refunds', 'payment_refunds'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->ulid('payment_id');
+            $table->string('refund_reference')->nullable();
+            $table->decimal('amount', 16, 2);
+            $table->string('currency', 3);
+            $table->string('status')->default('pending');
+            $table->string('reason')->nullable();
+            $table->json('gateway_data')->nullable();
+            $table->timestamps();
+
+            $table->foreign('payment_id')
+                ->references('id')
+                ->on(config('payments.tables.payments', 'payments'))
+                ->cascadeOnDelete();
+
+            $table->index('status');
+            $table->index('refund_reference');
+            $table->index('payment_id');
+        });
+
+        // 8. Subscriptions
+        Schema::create(config('payments.tables.subscriptions', 'payment_subscriptions'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->string('gateway_name');
+            $table->string('profile')->default('test');
+            $table->string('tenant_id')->nullable();
+            $table->string('customer_id')->nullable();
+            $table->string('customer_email')->nullable();
+            $table->string('plan_id');
+            $table->string('plan_name')->nullable();
+            $table->string('status')->default('incomplete');
+            $table->string('gateway_subscription_id')->nullable();
+            $table->unsignedInteger('quantity')->default(1);
+            $table->decimal('amount', 16, 2);
+            $table->string('currency', 3);
+            $table->string('interval')->default('monthly');
+            $table->unsignedInteger('interval_count')->default(1);
+            $table->timestamp('trial_ends_at')->nullable();
+            $table->timestamp('current_period_start')->nullable();
+            $table->timestamp('current_period_end')->nullable();
+            $table->timestamp('paused_at')->nullable();
+            $table->timestamp('cancelled_at')->nullable();
+            $table->timestamp('ends_at')->nullable();
+            $table->json('metadata')->nullable();
+            $table->json('gateway_data')->nullable();
+            $table->timestamps();
+
+            $table->index('gateway_name');
+            $table->index('status');
+            $table->index('tenant_id');
+            $table->index('customer_id');
+            $table->index('customer_email');
+            $table->index('plan_id');
+            $table->index('gateway_subscription_id');
+            $table->index(['gateway_name', 'status']);
+            $table->index(['tenant_id', 'status']);
+            $table->index('current_period_end');
+        });
+
+        // 9. Subscription Items
+        Schema::create(config('payments.tables.subscription_items', 'payment_subscription_items'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->foreignUlid('subscription_id')->constrained(config('payments.tables.subscriptions', 'payment_subscriptions'))->cascadeOnDelete();
+            $table->string('product_id');
+            $table->string('product_name')->nullable();
+            $table->string('gateway_item_id')->nullable();
+            $table->unsignedInteger('quantity')->default(1);
+            $table->decimal('unit_price', 16, 2)->nullable();
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+
+            $table->index('product_id');
+        });
+
+        // 10. Subscription Usage
+        Schema::create(config('payments.tables.subscription_usage', 'payment_subscription_usage'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->foreignUlid('subscription_id')->constrained(config('payments.tables.subscriptions', 'payment_subscriptions'))->cascadeOnDelete();
+            $table->foreignUlid('subscription_item_id')->nullable()->constrained(config('payments.tables.subscription_items', 'payment_subscription_items'))->nullOnDelete();
+            $table->string('feature');
+            $table->decimal('quantity', 16, 4)->default(1);
+            $table->json('metadata')->nullable();
+            $table->timestamp('recorded_at');
+            $table->timestamps();
+
+            $table->index(['subscription_id', 'feature']);
+            $table->index('recorded_at');
+        });
+
+        // 11. Webhooks
+        Schema::create(config('payments.tables.webhooks', 'payment_webhook_events'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->string('gateway_name');
+            $table->ulid('payment_id')->nullable();
+            $table->string('event_type')->nullable();
+            $table->string('gateway_reference')->nullable();
+            $table->json('headers')->nullable();
+            $table->json('payload')->nullable();
+            $table->boolean('signature_valid')->default(false);
+            $table->boolean('processed')->default(false);
+            $table->timestamp('processed_at')->nullable();
+            $table->timestamps();
+
+            $table->foreign('payment_id')
+                ->references('id')
+                ->on(config('payments.tables.payments', 'payments'))
+                ->nullOnDelete();
+
+            $table->index('gateway_name');
+            $table->index('gateway_reference');
+            $table->index('event_type');
+            $table->index('processed');
+            $table->index(['gateway_name', 'gateway_reference', 'event_type'], 'webhook_idempotency');
+        });
+
+        // 12. Payment Links
+        Schema::create(config('payments.tables.links', 'payment_links'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->string('gateway_name');
+            $table->string('gateway_link_id')->nullable();
+            $table->string('url')->unique();
+            $table->decimal('amount', 16, 2);
+            $table->string('currency', 3);
+            $table->string('status')->default('active');
+            $table->boolean('is_reusable')->default(false);
+            $table->json('metadata')->nullable();
+            $table->timestamp('expires_at')->nullable();
+            $table->timestamps();
+
+            $table->index('gateway_name');
+            $table->index('status');
+        });
+
+        // 13. Exchange Rates
+        Schema::create(config('payments.tables.exchange_rates', 'payment_exchange_rates'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->string('from_currency', 3);
+            $table->string('to_currency', 3);
+            $table->decimal('rate', 16, 8);
+            $table->string('source')->nullable();
+            $table->timestamps();
+
+            $table->unique(['from_currency', 'to_currency']);
+        });
+
+        // 14. Coupons
+        Schema::create(config('payments.tables.coupons', 'payment_coupons'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->string('code')->unique();
+            $table->string('name')->nullable();
+            $table->string('type')->default('percent'); // percent, fixed
+            $table->decimal('value', 16, 2);
+            $table->string('currency', 3)->nullable();
+            $table->decimal('min_spend', 16, 2)->nullable();
+            $table->unsignedInteger('max_uses')->nullable();
+            $table->unsignedInteger('max_uses_per_customer')->nullable();
+            $table->unsignedInteger('used_count')->default(0);
+            $table->boolean('is_active')->default(true);
+            $table->boolean('stackable')->default(false);
+            $table->json('metadata')->nullable();
+            $table->timestamp('expires_at')->nullable();
+            $table->timestamps();
+
+            $table->index('is_active');
+            $table->index('expires_at');
+        });
+
+        // 15. Coupon Usages
+        Schema::create(config('payments.tables.coupon_usages', 'payment_coupon_usages'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->foreignUlid('coupon_id')->constrained(config('payments.tables.coupons', 'payment_coupons'))->cascadeOnDelete();
+            $table->string('payment_id')->nullable();
+            $table->string('customer_email')->nullable();
+            $table->decimal('discount_amount', 16, 2);
+            $table->timestamp('used_at');
+            $table->timestamps();
+
+            $table->index('customer_email');
+            $table->index('payment_id');
+        });
+
+        // 16. Blocklist
+        Schema::create(config('payments.tables.blocklist', 'payment_blocklist'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->string('type'); // email, ip, card_bin, phone
+            $table->string('value');
+            $table->string('reason')->nullable();
+            $table->json('metadata')->nullable();
+            $table->timestamp('expires_at')->nullable();
+            $table->timestamps();
+
+            $table->index('type');
+            $table->index(['type', 'value']);
+            $table->index('expires_at');
+        });
+
+        // 17. Risk Assessments
+        Schema::create(config('payments.tables.risk_assessments', 'payment_risk_assessments'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->string('payment_id')->nullable();
+            $table->unsignedInteger('score')->default(0);
+            $table->json('factors')->nullable();
+            $table->string('decision')->default('allow');  // allow, review, block
+            $table->string('ip_address')->nullable();
+            $table->string('email')->nullable();
+            $table->string('card_bin')->nullable();
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+
+            $table->index('payment_id');
+            $table->index('score');
+            $table->index('decision');
+        });
+
+        // 18. Invoices
+        Schema::create(config('payments.tables.invoices', 'payment_invoices'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->string('number')->unique();
+            $table->string('payment_id')->nullable();
+            $table->string('subscription_id')->nullable();
+            $table->string('customer_name')->nullable();
+            $table->string('customer_email')->nullable();
+            $table->string('status')->default('unpaid');
+            $table->string('currency', 3);
+            $table->decimal('subtotal', 16, 2);
+            $table->decimal('tax_amount', 16, 2)->default(0);
+            $table->decimal('discount_amount', 16, 2)->default(0);
+            $table->decimal('total', 16, 2);
+            $table->text('notes')->nullable();
+            $table->json('metadata')->nullable();
+            $table->timestamp('due_at')->nullable();
+            $table->timestamp('paid_at')->nullable();
+            $table->timestamp('voided_at')->nullable();
+            $table->timestamps();
+
+            $table->index('status');
+            $table->index('customer_email');
+            $table->index('payment_id');
+            $table->index('subscription_id');
+            $table->index('due_at');
+        });
+
+        // 19. Invoice Items
+        Schema::create(config('payments.tables.invoice_items', 'payment_invoice_items'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->foreignUlid('invoice_id')->constrained(config('payments.tables.invoices', 'payment_invoices'))->cascadeOnDelete();
+            $table->string('description');
+            $table->unsignedInteger('quantity')->default(1);
+            $table->decimal('unit_price', 16, 2);
+            $table->decimal('tax_rate', 8, 4)->default(0);
+            $table->decimal('total', 16, 2);
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+        });
+
+        // 20. Credit Notes
+        Schema::create(config('payments.tables.credit_notes', 'payment_credit_notes'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->foreignUlid('invoice_id')->constrained(config('payments.tables.invoices', 'payment_invoices'))->cascadeOnDelete();
+            $table->string('number')->unique();
+            $table->decimal('amount', 16, 2);
+            $table->string('reason')->nullable();
+            $table->string('status')->default('issued');
+            $table->json('metadata')->nullable();
+            $table->timestamp('issued_at');
+            $table->timestamps();
+        });
+
+        // 21. Tax Rates
+        Schema::create(config('payments.tables.tax_rates', 'payment_tax_rates'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->string('name');
+            $table->string('region')->nullable();
+            $table->decimal('rate', 8, 4);
+            $table->boolean('is_inclusive')->default(false);
+            $table->boolean('is_active')->default(true);
+            $table->string('description')->nullable();
+            $table->timestamps();
+
+            $table->index('region');
+            $table->index('is_active');
+        });
+
+        // 22. Payout Recipients
+        Schema::create(config('payments.tables.payout_recipients', 'payment_payout_recipients'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->string('gateway_name');
+            $table->string('external_id')->nullable();
+            $table->string('name');
+            $table->string('email')->nullable();
+            $table->string('status')->default('pending');
+            $table->boolean('is_active')->default(true);
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+
+            $table->index('gateway_name');
+            $table->index('email');
+            $table->index('status');
+        });
+
+        // 23. Payouts
+        Schema::create(config('payments.tables.payouts', 'payment_payouts'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->foreignUlid('recipient_id')->constrained(config('payments.tables.payout_recipients', 'payment_payout_recipients'))->cascadeOnDelete();
+            $table->string('gateway_name');
+            $table->string('gateway_payout_id')->nullable();
+            $table->decimal('amount', 16, 2);
+            $table->decimal('fee', 16, 2)->default(0);
+            $table->string('currency', 3);
+            $table->string('status')->default('pending');
+            $table->json('metadata')->nullable();
+            $table->timestamp('scheduled_at')->nullable();
+            $table->timestamp('paid_at')->nullable();
+            $table->timestamps();
+
+            $table->index('status');
+            $table->index('scheduled_at');
+        });
+
+        // 24. Splits
+        Schema::create(config('payments.tables.payment_splits', 'payment_splits'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->string('payment_id');
+            $table->foreignUlid('recipient_id')->constrained(config('payments.tables.payout_recipients', 'payment_payout_recipients'))->cascadeOnDelete();
+            $table->decimal('amount', 16, 2);
+            $table->decimal('fee', 16, 2)->default(0);
+            $table->string('currency', 3);
+            $table->string('status')->default('pending');
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+
+            $table->index('payment_id');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists(config('payments.tables.payment_splits', 'payment_splits'));
+        Schema::dropIfExists(config('payments.tables.payouts', 'payment_payouts'));
+        Schema::dropIfExists(config('payments.tables.payout_recipients', 'payment_payout_recipients'));
+        Schema::dropIfExists(config('payments.tables.tax_rates', 'payment_tax_rates'));
+        Schema::dropIfExists(config('payments.tables.credit_notes', 'payment_credit_notes'));
+        Schema::dropIfExists(config('payments.tables.invoice_items', 'payment_invoice_items'));
+        Schema::dropIfExists(config('payments.tables.invoices', 'payment_invoices'));
+        Schema::dropIfExists(config('payments.tables.risk_assessments', 'payment_risk_assessments'));
+        Schema::dropIfExists(config('payments.tables.blocklist', 'payment_blocklist'));
+        Schema::dropIfExists(config('payments.tables.coupon_usages', 'payment_coupon_usages'));
+        Schema::dropIfExists(config('payments.tables.coupons', 'payment_coupons'));
+        Schema::dropIfExists(config('payments.tables.exchange_rates', 'payment_exchange_rates'));
+        Schema::dropIfExists(config('payments.tables.links', 'payment_links'));
+        Schema::dropIfExists(config('payments.tables.webhooks', 'payment_webhook_events'));
+        Schema::dropIfExists(config('payments.tables.subscription_usage', 'payment_subscription_usage'));
+        Schema::dropIfExists(config('payments.tables.subscription_items', 'payment_subscription_items'));
+        Schema::dropIfExists(config('payments.tables.subscriptions', 'payment_subscriptions'));
+        Schema::dropIfExists(config('payments.tables.refunds', 'payment_refunds'));
+        Schema::dropIfExists(config('payments.tables.logs', 'payment_logs'));
+        Schema::dropIfExists(config('payments.tables.attempts', 'payment_attempts'));
+        Schema::dropIfExists(config('payments.tables.payments', 'payments'));
+        Schema::dropIfExists(config('payments.tables.methods', 'payment_methods'));
+        Schema::dropIfExists(config('payments.tables.credentials', 'payment_gateway_credentials'));
+        Schema::dropIfExists(config('payments.tables.gateways', 'payment_gateways'));
+    }
+};

@@ -46,6 +46,11 @@ class Subscription extends Model
         return $this->hasMany(SubscriptionUsage::class);
     }
 
+    public function plan()
+    {
+        return $this->belongsTo(\App\Models\Plan::class);
+    }
+
     // ── State Checks ──
 
     public function isActive(): bool

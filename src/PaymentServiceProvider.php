@@ -32,23 +32,7 @@ class PaymentServiceProvider extends PackageServiceProvider
             ->name('laravel-payments')
             ->hasConfigFile('payments')
             ->hasMigrations([
-                'create_payment_gateways_table',
-                'create_payment_gateway_credentials_table',
-                'create_payments_table',
-                'create_payment_attempts_table',
-                'create_payment_webhook_events_table',
-                'create_payment_refunds_table',
-                'create_payment_logs_table',
-                'create_payment_subscriptions_table',
-                'create_payment_subscription_items_table',
-                'create_payment_subscription_usage_table',
-                'create_payment_methods_table',
-                'create_payment_invoicing_tables',
-                'create_payment_payout_tables',
-                'create_payment_fraud_tables',
-                'create_payment_coupon_tables',
-                'create_payment_exchange_rates_table',
-                'create_payment_links_table',
+                'create_payments_tables',
             ])
             ->hasRoute('web')
             ->hasCommands([

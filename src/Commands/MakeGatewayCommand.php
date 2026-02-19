@@ -4,6 +4,8 @@ namespace Frolax\Payment\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
+use Nette\PhpGenerator\ClassType;
+use Nette\PhpGenerator\PhpFile;
 
 class MakeGatewayCommand extends Command
 {
@@ -47,11 +49,12 @@ class MakeGatewayCommand extends Command
         string $key,
         string $displayName,
         string $className,
-        array $capabilities,
-        array $profiles,
-        array $credentials,
+        array  $capabilities,
+        array  $profiles,
+        array  $credentials,
         string $namespace,
-    ): int {
+    ): int
+    {
         $basePath = base_path("app/Payment/Gateways/{$className}");
 
         if (!is_dir($basePath)) {
@@ -95,11 +98,12 @@ class MakeGatewayCommand extends Command
         string $key,
         string $displayName,
         string $className,
-        array $capabilities,
-        array $profiles,
-        array $credentials,
+        array  $capabilities,
+        array  $profiles,
+        array  $credentials,
         string $namespace,
-    ): int {
+    ): int
+    {
         $vendorName = Str::kebab($name);
         $basePath = base_path("packages/frolax/payment-{$vendorName}");
 
@@ -171,284 +175,238 @@ class MakeGatewayCommand extends Command
         string $className,
         string $key,
         string $displayName,
-        array $capabilities,
-        array $credentials,
-        string $namespace,
-        bool $isAddon,
-    ): string {
-        $interfaces = ['GatewayDriverContract'];
-        $uses = ["use Frolax\\Payment\\Contracts\\GatewayDriverContract;"];
-        $implements = '';
-        $traitMethods = '';
+        array  $capabilities,
+        array  $credentials,
+        string $namespaceName,
+        bool   $isAddon,
+    ): string
+    {
+        $file = new PhpFile();
+        $file->setStrictTypes();
+
+        $namespace = $file->addNamespace($namespaceName);
+
+        $namespace->addUse('Frolax\Payment\Contracts\GatewayDriverContract');
+        $namespace->addUse('Frolax\Payment\DTOs\CanonicalPayload');
+        $namespace->addUse('Frolax\Payment\DTOs\CredentialsDTO');
+        $namespace->addUse('Frolax\Payment\DTOs\GatewayResult');
+        $namespace->addUse('Frolax\Payment\Enums\PaymentStatus');
+        $namespace->addUse('Illuminate\Http\Request');
+
+        $class = $namespace->addClass("{$className}Driver");
+        $class->addImplement('Frolax\Payment\Contracts\GatewayDriverContract');
 
         if (in_array('redirect', $capabilities)) {
-            $interfaces[] = 'SupportsHostedRedirect';
-            $uses[] = "use Frolax\\Payment\\Contracts\\SupportsHostedRedirect;";
+            $namespace->addUse('Frolax\Payment\Contracts\SupportsHostedRedirect');
+            $class->addImplement('Frolax\Payment\Contracts\SupportsHostedRedirect');
         }
         if (in_array('webhook', $capabilities)) {
-            $interfaces[] = 'SupportsWebhookVerification';
-            $uses[] = "use Frolax\\Payment\\Contracts\\SupportsWebhookVerification;";
+            $namespace->addUse('Frolax\Payment\Contracts\SupportsWebhookVerification');
+            $class->addImplement('Frolax\Payment\Contracts\SupportsWebhookVerification');
         }
         if (in_array('refund', $capabilities)) {
-            $interfaces[] = 'SupportsRefund';
-            $uses[] = "use Frolax\\Payment\\Contracts\\SupportsRefund;";
+            $namespace->addUse('Frolax\Payment\Contracts\SupportsRefund');
+            $class->addImplement('Frolax\Payment\Contracts\SupportsRefund');
         }
         if (in_array('status', $capabilities)) {
-            $interfaces[] = 'SupportsStatusQuery';
-            $uses[] = "use Frolax\\Payment\\Contracts\\SupportsStatusQuery;";
+            $namespace->addUse('Frolax\Payment\Contracts\SupportsStatusQuery');
+            $class->addImplement('Frolax\Payment\Contracts\SupportsStatusQuery');
         }
 
-        $uses[] = "use Frolax\\Payment\\DTOs\\CanonicalPayload;";
-        $uses[] = "use Frolax\\Payment\\DTOs\\CredentialsDTO;";
-        $uses[] = "use Frolax\\Payment\\DTOs\\GatewayResult;";
-        $uses[] = "use Frolax\\Payment\\Enums\\PaymentStatus;";
-        $uses[] = "use Illuminate\\Http\\Request;";
+        $class->addProperty('credentials')
+            ->setProtected()
+            ->setType('Frolax\Payment\DTOs\CredentialsDTO')
+            ->setNullable()
+            ->setValue(null);
 
-        $implementsStr = implode(', ', $interfaces);
-        $usesStr = implode("\n", array_unique($uses));
+        $class->addMethod('name')
+            ->setPublic()
+            ->setReturnType('string')
+            ->setBody("return '{$key}';");
 
-        $capabilitiesArray = implode(",\n            ", array_map(fn ($c) => "'{$c}'", $capabilities));
+        $class->addMethod('setCredentials')
+            ->setPublic()
+            ->setReturnType('static')
+            ->setBody("\$this->credentials = \$credentials;\n\nreturn \$this;")
+            ->addParameter('credentials')
+            ->setType('Frolax\Payment\DTOs\CredentialsDTO');
 
-        $methods = $this->generateCapabilityMethods($capabilities);
+        $class->addMethod('capabilities')
+            ->setPublic()
+            ->setReturnType('array')
+            ->setBody("return [\n    " . implode(",\n    ", array_map(fn($c) => "'{$c}'", $capabilities)) . ",\n];");
 
-        return <<<PHP
-<?php
+        $create = $class->addMethod('create')
+            ->setPublic()
+            ->setReturnType('Frolax\Payment\DTOs\GatewayResult');
 
-namespace {$namespace};
+        $create->addParameter('payload')->setType('Frolax\Payment\DTOs\CanonicalPayload');
+        $create->addParameter('credentials')->setType('Frolax\Payment\DTOs\CredentialsDTO');
 
-{$usesStr}
+        $create->setBody(<<<PHP
+// TODO: Map canonical payload -> {$displayName} API request
+// \$apiKey = \$credentials->get('key');
+// \$apiSecret = \$credentials->get('secret');
 
-class {$className}Driver implements {$implementsStr}
-{
-    protected ?CredentialsDTO \$credentials = null;
+// TODO: Make HTTP request to {$displayName} API
 
-    public function name(): string
-    {
-        return '{$key}';
-    }
-
-    public function setCredentials(CredentialsDTO \$credentials): static
-    {
-        \$this->credentials = \$credentials;
-
-        return \$this;
-    }
-
-    public function capabilities(): array
-    {
-        return [
-            {$capabilitiesArray},
-        ];
-    }
-
-    // -------------------------------------------------------
-    // Required: create + verify
-    // -------------------------------------------------------
-
-    public function create(CanonicalPayload \$payload, CredentialsDTO \$credentials): GatewayResult
-    {
-        // TODO: Map canonical payload -> {$displayName} API request
-        // \$apiKey = \$credentials->get('key');
-        // \$apiSecret = \$credentials->get('secret');
-
-        // TODO: Make HTTP request to {$displayName} API
-
-        // TODO: Return appropriate GatewayResult
-        return new GatewayResult(
-            status: PaymentStatus::Pending,
-            gatewayReference: null,
-            redirectUrl: null, // Set if using hosted redirect
-            gatewayResponse: [],
+// TODO: Return appropriate GatewayResult
+return new GatewayResult(
+    status: PaymentStatus::Pending,
+    gatewayReference: null,
+    redirectUrl: null, // Set if using hosted redirect
+    gatewayResponse: [],
+);
+PHP
         );
-    }
 
-    public function verify(Request \$request, CredentialsDTO \$credentials): GatewayResult
-    {
-        // TODO: Parse {$displayName} callback/return request
-        // TODO: Verify payment status with {$displayName} API
+        $verify = $class->addMethod('verify')
+            ->setPublic()
+            ->setReturnType('Frolax\Payment\DTOs\GatewayResult');
 
-        return new GatewayResult(
-            status: PaymentStatus::Pending,
-            gatewayReference: null,
-            gatewayResponse: [],
+        $verify->addParameter('request')->setType('Illuminate\Http\Request');
+        $verify->addParameter('credentials')->setType('Frolax\Payment\DTOs\CredentialsDTO');
+
+        $verify->setBody(<<<PHP
+// TODO: Parse {$displayName} callback/return request
+// TODO: Verify payment status with {$displayName} API
+
+return new GatewayResult(
+    status: PaymentStatus::Pending,
+    gatewayReference: null,
+    gatewayResponse: [],
+);
+PHP
         );
+
+        $this->addCapabilityMethods($class, $capabilities);
+
+        return (string)$file;
     }
 
-{$methods}
-}
-
-PHP;
-    }
-
-    protected function generateCapabilityMethods(array $capabilities): string
+    protected function addCapabilityMethods(ClassType $class, array $capabilities): void
     {
-        $methods = '';
-
         if (in_array('redirect', $capabilities)) {
-            $methods .= <<<'PHP'
-
-    // -------------------------------------------------------
-    // Capability: Hosted Redirect
-    // -------------------------------------------------------
-
-    public function getRedirectUrl(GatewayResult $result): ?string
-    {
-        return $result->redirectUrl;
-    }
-
-PHP;
+            $class->addMethod('getRedirectUrl')
+                ->setPublic()
+                ->setReturnType('?string')
+                ->setBody('return $result->redirectUrl;')
+                ->addParameter('result')
+                ->setType('Frolax\Payment\DTOs\GatewayResult');
         }
 
         if (in_array('webhook', $capabilities)) {
-            $methods .= <<<'PHP'
+            $verifyWebhook = $class->addMethod('verifyWebhookSignature')
+                ->setPublic()
+                ->setReturnType('bool')
+                ->setBody("// TODO: Implement webhook signature verification\n// \$signature = \$request->header('X-Signature');\n// \$webhookSecret = \$credentials->get('webhook_secret');\n\nreturn false;");
 
-    // -------------------------------------------------------
-    // Capability: Webhook Verification
-    // -------------------------------------------------------
+            $verifyWebhook->addParameter('request')->setType('Illuminate\Http\Request');
+            $verifyWebhook->addParameter('credentials')->setType('Frolax\Payment\DTOs\CredentialsDTO');
 
-    public function verifyWebhookSignature(Request $request, CredentialsDTO $credentials): bool
-    {
-        // TODO: Implement webhook signature verification
-        // $signature = $request->header('X-Signature');
-        // $webhookSecret = $credentials->get('webhook_secret');
+            $class->addMethod('parseWebhookEventType')
+                ->setPublic()
+                ->setReturnType('?string')
+                ->setBody("// TODO: Parse event type from webhook payload\nreturn \$request->input('event_type');")
+                ->addParameter('request')->setType('Illuminate\Http\Request');
 
-        return false;
-    }
-
-    public function parseWebhookEventType(Request $request): ?string
-    {
-        // TODO: Parse event type from webhook payload
-        return $request->input('event_type');
-    }
-
-    public function parseWebhookGatewayReference(Request $request): ?string
-    {
-        // TODO: Parse gateway reference from webhook payload
-        return $request->input('transaction_id');
-    }
-
-PHP;
+            $class->addMethod('parseWebhookGatewayReference')
+                ->setPublic()
+                ->setReturnType('?string')
+                ->setBody("// TODO: Parse gateway reference from webhook payload\nreturn \$request->input('transaction_id');")
+                ->addParameter('request')->setType('Illuminate\Http\Request');
         }
 
         if (in_array('refund', $capabilities)) {
-            $methods .= <<<'PHP'
+            $refund = $class->addMethod('refund')
+                ->setPublic()
+                ->setReturnType('Frolax\Payment\DTOs\GatewayResult')
+                ->setBody("// TODO: Implement refund via gateway API\n\nreturn new GatewayResult(\n    status: PaymentStatus::Refunded,\n    gatewayResponse: [],\n);");
 
-    // -------------------------------------------------------
-    // Capability: Refund
-    // -------------------------------------------------------
-
-    public function refund(\Frolax\Payment\DTOs\CanonicalRefundPayload $payload, CredentialsDTO $credentials): GatewayResult
-    {
-        // TODO: Implement refund via gateway API
-
-        return new GatewayResult(
-            status: PaymentStatus::Refunded,
-            gatewayResponse: [],
-        );
-    }
-
-PHP;
+            $refund->addParameter('payload')->setType('Frolax\Payment\DTOs\CanonicalRefundPayload');
+            $refund->addParameter('credentials')->setType('Frolax\Payment\DTOs\CredentialsDTO');
         }
 
         if (in_array('status', $capabilities)) {
-            $methods .= <<<'PHP'
+            $status = $class->addMethod('status')
+                ->setPublic()
+                ->setReturnType('Frolax\Payment\DTOs\GatewayResult')
+                ->setBody("// TODO: Query payment status from gateway API\n\nreturn new GatewayResult(\n    status: PaymentStatus::Pending,\n    gatewayResponse: [],\n);");
 
-    // -------------------------------------------------------
-    // Capability: Status Query
-    // -------------------------------------------------------
-
-    public function status(\Frolax\Payment\DTOs\CanonicalStatusPayload $payload, CredentialsDTO $credentials): GatewayResult
-    {
-        // TODO: Query payment status from gateway API
-
-        return new GatewayResult(
-            status: PaymentStatus::Pending,
-            gatewayResponse: [],
-        );
-    }
-
-PHP;
+            $status->addParameter('payload')->setType('Frolax\Payment\DTOs\CanonicalStatusPayload');
+            $status->addParameter('credentials')->setType('Frolax\Payment\DTOs\CredentialsDTO');
         }
-
-        return $methods;
     }
 
     protected function generateAddonProvider(
         string $className,
         string $key,
         string $displayName,
-        array $capabilities,
-        array $credentials,
-        string $namespace,
-    ): string {
-        $capArray = implode(",\n            ", array_map(fn ($c) => "'{$c}'", $capabilities));
-        $credArray = implode(",\n            ", array_map(fn ($k, $v) => "'{$k}' => '{$v}'", array_keys($credentials), array_values($credentials)));
-
-        return <<<PHP
-<?php
-
-namespace {$namespace};
-
-use Frolax\\Payment\\Contracts\\GatewayAddonContract;
-
-class {$className}GatewayAddon implements GatewayAddonContract
-{
-    public function gatewayKey(): string
+        array  $capabilities,
+        array  $credentials,
+        string $namespaceName,
+    ): string
     {
-        return '{$key}';
+        $file = new PhpFile();
+        $file->setStrictTypes();
+
+        $namespace = $file->addNamespace($namespaceName);
+        $namespace->addUse('Frolax\Payment\Contracts\GatewayAddonContract');
+
+        $class = $namespace->addClass("{$className}GatewayAddon");
+        $class->addImplement('Frolax\Payment\Contracts\GatewayAddonContract');
+
+        $class->addMethod('gatewayKey')
+            ->setPublic()
+            ->setReturnType('string')
+            ->setBody("return '{$key}';");
+
+        $class->addMethod('displayName')
+            ->setPublic()
+            ->setReturnType('string')
+            ->setBody("return '{$displayName}';");
+
+        $class->addMethod('driverClass')
+            ->setPublic()
+            ->setReturnType('string|callable')
+            ->setBody("return {$className}Driver::class;");
+
+        $class->addMethod('capabilities')
+            ->setPublic()
+            ->setReturnType('array')
+            ->setBody("return [\n    " . implode(",\n    ", array_map(fn($c) => "'{$c}'", $capabilities)) . ",\n];");
+
+        $class->addMethod('credentialSchema')
+            ->setPublic()
+            ->setReturnType('array')
+            ->setBody("return [\n    " . implode(",\n    ", array_map(fn($k, $v) => "'{$k}' => '{$v}'", array_keys($credentials), array_values($credentials))) . ",\n];");
+
+        $class->addMethod('defaultConfig')
+            ->setPublic()
+            ->setReturnType('array')
+            ->setBody('return [];');
+
+        return (string)$file;
     }
 
-    public function displayName(): string
+    protected function generateAddonServiceProvider(string $className, string $namespaceName): string
     {
-        return '{$displayName}';
-    }
+        $file = new PhpFile();
+        $file->setStrictTypes();
 
-    public function driverClass(): string|callable
-    {
-        return {$className}Driver::class;
-    }
+        $namespace = $file->addNamespace($namespaceName);
+        $namespace->addUse('Frolax\Payment\Discovery\GatewayAddonServiceProvider');
+        $namespace->addUse('Frolax\Payment\Contracts\GatewayAddonContract');
 
-    public function capabilities(): array
-    {
-        return [
-            {$capArray},
-        ];
-    }
+        $class = $namespace->addClass("{$className}ServiceProvider");
+        $class->setExtends('Frolax\Payment\Discovery\GatewayAddonServiceProvider');
 
-    public function credentialSchema(): array
-    {
-        return [
-            {$credArray},
-        ];
-    }
+        $class->addMethod('gatewayAddon')
+            ->setPublic()
+            ->setReturnType('Frolax\Payment\Contracts\GatewayAddonContract')
+            ->setBody("return new {$className}GatewayAddon();");
 
-    public function defaultConfig(): array
-    {
-        return [];
-    }
-}
-
-PHP;
-    }
-
-    protected function generateAddonServiceProvider(string $className, string $namespace): string
-    {
-        return <<<PHP
-<?php
-
-namespace {$namespace};
-
-use Frolax\\Payment\\Discovery\\GatewayAddonServiceProvider;
-
-class {$className}ServiceProvider extends GatewayAddonServiceProvider
-{
-    public function gatewayAddon(): \\Frolax\\Payment\\Contracts\\GatewayAddonContract
-    {
-        return new {$className}GatewayAddon();
-    }
-}
-
-PHP;
+        return (string)$file;
     }
 
     protected function generateAddonComposer(string $vendorName, string $name, string $className, string $namespace): string
@@ -456,13 +414,13 @@ PHP;
         $escapedNamespace = str_replace('\\', '\\\\', $namespace);
 
         return json_encode([
-            'name' => "frolax/payment-{$vendorName}",
+            'name' => "frolaxhq/payment-{$vendorName}",
             'description' => "{$name} payment gateway driver for frolax/laravel-payments",
             'type' => 'library',
             'license' => 'MIT',
             'require' => [
-                'php' => '^8.4',
-                'frolaxhq/laravel-payments' => '^1.0',
+                'php' => '^8.2',
+                'frolaxhq/laravel-payments' => '^2.0',
             ],
             'autoload' => [
                 'psr-4' => [
@@ -479,16 +437,24 @@ PHP;
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
     }
 
-    protected function generateTestFile(string $className, string $key, string $namespace, bool $isAddon): string
+    protected function generateTestFile(string $className, string $key, string $namespaceName, bool $isAddon): string
     {
-        return <<<PHP
-<?php
+        $file = new PhpFile();
+        // Pest doesn't usually use strict types in tests, so we'll skip it here for consistency with typical Pest files
 
-use Frolax\\Payment\\DTOs\\CanonicalPayload;
-use Frolax\\Payment\\DTOs\\CredentialsDTO;
-use Frolax\\Payment\\DTOs\\GatewayResult;
-use {$namespace}\\{$className}Driver;
+        // Nette doesn't directly support Pest's top-level functions easily as "methods",
+        // but it's perfect for generating the setup and imports.
+        // Actually, since Pest is basically top-level PHP, we can just use the Namespace object to add code.
 
+        $namespace = $file->addNamespace(''); // No namespace for Pest tests usually
+        $namespace->addUse('Frolax\Payment\DTOs\CanonicalPayload');
+        $namespace->addUse('Frolax\Payment\DTOs\CredentialsDTO');
+        $namespace->addUse('Frolax\Payment\DTOs\GatewayResult');
+        $namespace->addUse("{$namespaceName}\\{$className}Driver");
+
+        $content = (string)$file;
+        $content .= "\n";
+        $content .= <<<PHP
 test('{$key} driver returns correct name', function () {
     \$driver = new {$className}Driver();
     expect(\$driver->name())->toBe('{$key}');
@@ -518,8 +484,9 @@ test('{$key} driver can create a payment', function () {
 
     expect(\$result)->toBeInstanceOf(GatewayResult::class);
 });
-
 PHP;
+
+        return $content;
     }
 
     protected function generateConfigSnippet(string $key, array $profiles, array $credentials): string
@@ -569,7 +536,7 @@ PHP;
 # {$displayName} Payment Gateway
 
 ## Overview
-{$displayName} payment gateway driver for `frolax/laravel-payments`.
+{$displayName} payment gateway driver for `frolaxhq/laravel-payments`.
 
 - **Gateway Key:** `{$key}`
 - **Capabilities:** {$capList}
