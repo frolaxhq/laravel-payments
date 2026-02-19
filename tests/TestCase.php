@@ -2,9 +2,9 @@
 
 namespace Frolax\Payment\Tests;
 
+use Frolax\Payment\PaymentServiceProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Orchestra\Testbench\TestCase as Orchestra;
-use Frolax\Payment\PaymentServiceProvider;
 
 class TestCase extends Orchestra
 {
@@ -34,7 +34,7 @@ class TestCase extends Orchestra
         ]);
 
         // Run all package migrations
-        foreach (\Illuminate\Support\Facades\File::allFiles(__DIR__ . '/../database/migrations') as $migration) {
+        foreach (\Illuminate\Support\Facades\File::allFiles(__DIR__.'/../database/migrations') as $migration) {
             (include $migration->getRealPath())->up();
         }
     }

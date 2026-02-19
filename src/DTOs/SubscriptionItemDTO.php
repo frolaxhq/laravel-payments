@@ -14,7 +14,7 @@ final readonly class SubscriptionItemDTO
 
     public static function fromArray(array $data): static
     {
-        return new static(
+        return new self(
             productId: $data['product_id'],
             name: $data['name'],
             quantity: $data['quantity'] ?? 1,
@@ -31,6 +31,6 @@ final readonly class SubscriptionItemDTO
             'quantity' => $this->quantity,
             'unit_price' => $this->unitPrice?->toArray(),
             'metadata' => $this->metadata,
-        ], fn($v) => $v !== null && $v !== []);
+        ], fn ($v) => $v !== null && $v !== []);
     }
 }

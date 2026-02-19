@@ -67,7 +67,7 @@ final readonly class CanonicalPayload
         foreach ($array as $key => $value) {
             $newKey = $prefix ? "{$prefix}.{$key}" : $key;
 
-            if (is_array($value) && !empty($value)) {
+            if (is_array($value) && ! empty($value)) {
                 $result = array_merge($result, self::flattenDot($value, $newKey));
             } else {
                 $result[$newKey] = $value;

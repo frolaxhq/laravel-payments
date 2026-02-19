@@ -2,13 +2,9 @@
 
 namespace Frolax\Payment\Http\Controllers;
 
-use Frolax\Payment\Contracts\GatewayDriverContract;
 use Frolax\Payment\Contracts\PaymentLoggerContract;
 use Frolax\Payment\Contracts\SupportsWebhookVerification;
-use Frolax\Payment\DTOs\GatewayResult;
-use Frolax\Payment\Enums\PaymentStatus;
 use Frolax\Payment\Events\WebhookReceived;
-use Frolax\Payment\Exceptions\InvalidSignatureException;
 use Frolax\Payment\GatewayRegistry;
 use Frolax\Payment\Models\PaymentModel;
 use Frolax\Payment\Models\PaymentWebhookEvent;
@@ -51,7 +47,7 @@ class WebhookController extends Controller
             $eventType = $driver->parseWebhookEventType($request);
             $gatewayReference = $driver->parseWebhookGatewayReference($request);
 
-            if (!$signatureValid) {
+            if (! $signatureValid) {
                 $logger->warning('webhook.signature.invalid', "Invalid webhook signature for [{$gateway}]", [
                     'gateway' => ['name' => $gateway],
                 ]);

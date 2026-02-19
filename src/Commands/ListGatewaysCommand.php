@@ -2,8 +2,8 @@
 
 namespace Frolax\Payment\Commands;
 
-use Frolax\Payment\GatewayRegistry;
 use Frolax\Payment\Contracts\CredentialsRepositoryContract;
+use Frolax\Payment\GatewayRegistry;
 use Illuminate\Console\Command;
 
 class ListGatewaysCommand extends Command

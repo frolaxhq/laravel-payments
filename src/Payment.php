@@ -18,27 +18,29 @@ use Frolax\Payment\Enums\AttemptStatus;
 use Frolax\Payment\Enums\PaymentStatus;
 use Frolax\Payment\Enums\RefundStatus;
 use Frolax\Payment\Enums\SubscriptionStatus;
-use Frolax\Payment\Events\PaymentCancelled;
 use Frolax\Payment\Events\PaymentCreated;
 use Frolax\Payment\Events\PaymentFailed;
-use Frolax\Payment\Events\PaymentRefundRequested;
 use Frolax\Payment\Events\PaymentRefunded;
+use Frolax\Payment\Events\PaymentRefundRequested;
 use Frolax\Payment\Events\PaymentVerified;
 use Frolax\Payment\Events\SubscriptionCancelled;
 use Frolax\Payment\Events\SubscriptionCreated;
 use Frolax\Payment\Events\SubscriptionPaused;
 use Frolax\Payment\Events\SubscriptionResumed;
 use Frolax\Payment\Exceptions\MissingCredentialsException;
-use Frolax\Payment\Models\Subscription;
 use Frolax\Payment\Exceptions\UnsupportedCapabilityException;
+use Frolax\Payment\Models\Subscription;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class Payment
 {
     protected ?string $gatewayName = null;
+
     protected ?string $profile = null;
+
     protected array $context = [];
+
     protected ?CredentialsDTO $oneOffCredentials = null;
 
     public function __construct(
@@ -287,7 +289,7 @@ class Payment
         $gateway = $this->resolveGatewayName();
         $driver = $this->resolveDriver($gateway);
 
-        if (!$driver instanceof SupportsRefund) {
+        if (! $driver instanceof SupportsRefund) {
             throw new UnsupportedCapabilityException($gateway, 'refund');
         }
 
@@ -371,7 +373,7 @@ class Payment
         $gateway = $this->resolveGatewayName();
         $driver = $this->resolveDriver($gateway);
 
-        if (!$driver instanceof SupportsStatusQuery) {
+        if (! $driver instanceof SupportsStatusQuery) {
             throw new UnsupportedCapabilityException($gateway, 'status');
         }
 
@@ -393,7 +395,7 @@ class Payment
         $gateway = $this->resolveGatewayName();
         $driver = $this->resolveDriver($gateway);
 
-        if (!$driver instanceof SupportsRecurring) {
+        if (! $driver instanceof SupportsRecurring) {
             throw new UnsupportedCapabilityException($gateway, 'recurring');
         }
 
@@ -449,7 +451,7 @@ class Payment
         $gateway = $this->resolveGatewayName();
         $driver = $this->resolveDriver($gateway);
 
-        if (!$driver instanceof SupportsRecurring) {
+        if (! $driver instanceof SupportsRecurring) {
             throw new UnsupportedCapabilityException($gateway, 'recurring');
         }
 
@@ -478,7 +480,7 @@ class Payment
         $gateway = $this->resolveGatewayName();
         $driver = $this->resolveDriver($gateway);
 
-        if (!$driver instanceof SupportsRecurring) {
+        if (! $driver instanceof SupportsRecurring) {
             throw new UnsupportedCapabilityException($gateway, 'recurring');
         }
 
@@ -506,7 +508,7 @@ class Payment
         $gateway = $this->resolveGatewayName();
         $driver = $this->resolveDriver($gateway);
 
-        if (!$driver instanceof SupportsRecurring) {
+        if (! $driver instanceof SupportsRecurring) {
             throw new UnsupportedCapabilityException($gateway, 'recurring');
         }
 
@@ -534,7 +536,7 @@ class Payment
         $gateway = $this->resolveGatewayName();
         $driver = $this->resolveDriver($gateway);
 
-        if (!$driver instanceof SupportsRecurring) {
+        if (! $driver instanceof SupportsRecurring) {
             throw new UnsupportedCapabilityException($gateway, 'recurring');
         }
 
@@ -544,9 +546,13 @@ class Payment
 
         if ($result->isSuccessful()) {
             $updateData = [];
-            if (isset($changes['plan_id'])) $updateData['plan_id'] = $changes['plan_id'];
-            if (isset($changes['quantity'])) $updateData['quantity'] = $changes['quantity'];
-            if (!empty($updateData)) {
+            if (isset($changes['plan_id'])) {
+                $updateData['plan_id'] = $changes['plan_id'];
+            }
+            if (isset($changes['quantity'])) {
+                $updateData['quantity'] = $changes['quantity'];
+            }
+            if (! empty($updateData)) {
                 $subscription->update($updateData);
             }
         }

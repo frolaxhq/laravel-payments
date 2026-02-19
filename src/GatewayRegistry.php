@@ -50,14 +50,14 @@ class GatewayRegistry
      */
     public function resolve(string $key): GatewayDriverContract
     {
-        if (!$this->has($key)) {
+        if (! $this->has($key)) {
             throw new GatewayNotFoundException("Gateway [{$key}] is not registered.");
         }
 
         $entry = $this->gateways[$key];
         $driver = $entry['driver'];
 
-        if (is_callable($driver) && !is_string($driver)) {
+        if (is_callable($driver) && ! is_string($driver)) {
             return $driver();
         }
 

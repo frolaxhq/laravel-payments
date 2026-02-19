@@ -4,14 +4,11 @@ use Frolax\Payment\DTOs\AddressDTO;
 use Frolax\Payment\DTOs\CanonicalPayload;
 use Frolax\Payment\DTOs\CanonicalRefundPayload;
 use Frolax\Payment\DTOs\CanonicalStatusPayload;
-use Frolax\Payment\DTOs\ContextDTO;
 use Frolax\Payment\DTOs\CredentialsDTO;
 use Frolax\Payment\DTOs\CustomerDTO;
 use Frolax\Payment\DTOs\GatewayResult;
 use Frolax\Payment\DTOs\MoneyDTO;
 use Frolax\Payment\DTOs\OrderDTO;
-use Frolax\Payment\DTOs\OrderItemDTO;
-use Frolax\Payment\DTOs\UrlsDTO;
 use Frolax\Payment\Enums\PaymentStatus;
 
 // -------------------------------------------------------

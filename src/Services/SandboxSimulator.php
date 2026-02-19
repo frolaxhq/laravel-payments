@@ -3,7 +3,6 @@
 namespace Frolax\Payment\Services;
 
 use Frolax\Payment\DTOs\CanonicalPayload;
-use Frolax\Payment\DTOs\CredentialsDTO;
 use Frolax\Payment\DTOs\GatewayResult;
 use Frolax\Payment\Enums\PaymentStatus;
 
@@ -14,11 +13,11 @@ class SandboxSimulator
      */
     public function simulateCreate(CanonicalPayload $payload): GatewayResult
     {
-        $shouldSucceed = !str_contains($payload->order->id, 'FAIL');
+        $shouldSucceed = ! str_contains($payload->order->id, 'FAIL');
 
         return new GatewayResult(
             status: $shouldSucceed ? PaymentStatus::Completed : PaymentStatus::Failed,
-            gatewayReference: 'sim_' . uniqid(),
+            gatewayReference: 'sim_'.uniqid(),
             redirectUrl: $payload->urls?->return,
             gatewayResponse: [
                 'simulator' => true,
@@ -38,7 +37,7 @@ class SandboxSimulator
     {
         return new GatewayResult(
             status: PaymentStatus::Refunded,
-            gatewayReference: 'sim_ref_' . uniqid(),
+            gatewayReference: 'sim_ref_'.uniqid(),
             redirectUrl: null,
             gatewayResponse: [
                 'simulator' => true,
@@ -55,7 +54,7 @@ class SandboxSimulator
     public function simulateWebhook(string $eventType, string $gatewayReference): array
     {
         return [
-            'id' => 'evt_sim_' . uniqid(),
+            'id' => 'evt_sim_'.uniqid(),
             'type' => $eventType,
             'gateway_reference' => $gatewayReference,
             'created_at' => now()->toISOString(),

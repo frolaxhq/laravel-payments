@@ -9,5 +9,6 @@ use Frolax\Payment\DTOs\GatewayResult;
 interface SupportsQRCode
 {
     public function generateQRCode(CanonicalPayload $payload, CredentialsDTO $credentials): GatewayResult;
+
     public function verifyQRPayment(string $reference, CredentialsDTO $credentials): GatewayResult;
 }

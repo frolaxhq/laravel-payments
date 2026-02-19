@@ -15,7 +15,7 @@ final readonly class OrderDTO
 
     public static function fromArray(?array $data): ?self
     {
-        if ($data === null || !isset($data['id'])) {
+        if ($data === null || ! isset($data['id'])) {
             return null;
         }
 

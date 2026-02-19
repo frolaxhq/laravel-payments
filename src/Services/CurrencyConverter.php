@@ -24,18 +24,19 @@ class CurrencyConverter
 
         $rate = ExchangeRate::latest($from, $to);
 
-        if (!$rate) {
+        if (! $rate) {
             // Try reverse
             $reverseRate = ExchangeRate::latest($to, $from);
             if ($reverseRate && $reverseRate->rate > 0) {
                 $convertedAmount = round($amount / $reverseRate->rate, 2);
+
                 return [
                     'original_amount' => $amount,
                     'converted_amount' => $convertedAmount,
                     'from' => strtoupper($from),
                     'to' => strtoupper($to),
                     'rate' => round(1 / $reverseRate->rate, 8),
-                    'source' => $reverseRate->source . ' (inverted)',
+                    'source' => $reverseRate->source.' (inverted)',
                 ];
             }
 

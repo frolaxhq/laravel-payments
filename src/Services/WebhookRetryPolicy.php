@@ -5,7 +5,9 @@ namespace Frolax\Payment\Services;
 class WebhookRetryPolicy
 {
     protected int $maxAttempts;
+
     protected string $strategy;
+
     protected int $baseDelay;
 
     public function __construct()

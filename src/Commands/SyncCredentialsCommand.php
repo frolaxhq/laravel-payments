@@ -34,14 +34,16 @@ class SyncCredentialsCommand extends Command
 
             if (empty($schema)) {
                 $this->line("  <info>{$key}</info>: No credential schema defined — skipping");
+
                 continue;
             }
 
             $creds = $credentialsRepo->get($key, $profile, $context);
 
-            if (!$creds) {
-                $this->error("  {$key}: No credentials found for profile [{$profile}]" . ($tenantId ? " tenant [{$tenantId}]" : ''));
+            if (! $creds) {
+                $this->error("  {$key}: No credentials found for profile [{$profile}]".($tenantId ? " tenant [{$tenantId}]" : ''));
                 $issues[] = $key;
+
                 continue;
             }
 
@@ -52,15 +54,15 @@ class SyncCredentialsCommand extends Command
                 }
             }
 
-            if (!empty($missingKeys)) {
-                $this->error("  {$key}: Missing required keys: " . implode(', ', $missingKeys));
+            if (! empty($missingKeys)) {
+                $this->error("  {$key}: Missing required keys: ".implode(', ', $missingKeys));
                 $issues[] = $key;
             } else {
                 $this->info("  {$key}: ✓ All required credentials present");
             }
         }
 
-        if (!empty($issues)) {
+        if (! empty($issues)) {
             $this->newLine();
             $this->error('Some gateways have missing credentials.');
 

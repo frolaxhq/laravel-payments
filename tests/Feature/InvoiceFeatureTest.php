@@ -1,8 +1,8 @@
 <?php
 
+use Frolax\Payment\Models\CreditNote;
 use Frolax\Payment\Models\Invoice;
 use Frolax\Payment\Models\InvoiceItem;
-use Frolax\Payment\Models\CreditNote;
 use Frolax\Payment\Models\TaxRate;
 
 // -------------------------------------------------------

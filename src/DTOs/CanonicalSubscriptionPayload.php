@@ -22,8 +22,8 @@ final readonly class CanonicalSubscriptionPayload
     {
         $plan = PlanDTO::fromArray($data['plan']);
 
-        return new static(
-            idempotencyKey: $data['idempotency_key'] ?? hash('sha256', $plan->id . ($data['customer']['email'] ?? '') . time()),
+        return new self(
+            idempotencyKey: $data['idempotency_key'] ?? hash('sha256', $plan->id.($data['customer']['email'] ?? '').time()),
             plan: $plan,
             customer: isset($data['customer']) ? CustomerDTO::fromArray($data['customer']) : null,
             urls: isset($data['urls']) ? UrlsDTO::fromArray($data['urls']) : null,
@@ -32,7 +32,7 @@ final readonly class CanonicalSubscriptionPayload
             couponCode: $data['coupon_code'] ?? null,
             quantity: $data['quantity'] ?? 1,
             items: array_map(
-                fn(array $item) => SubscriptionItemDTO::fromArray($item),
+                fn (array $item) => SubscriptionItemDTO::fromArray($item),
                 $data['items'] ?? [],
             ),
             metadata: $data['metadata'] ?? [],
@@ -51,9 +51,9 @@ final readonly class CanonicalSubscriptionPayload
             'trial_days' => $this->trialDays,
             'coupon_code' => $this->couponCode,
             'quantity' => $this->quantity,
-            'items' => array_map(fn($i) => $i->toArray(), $this->items),
+            'items' => array_map(fn ($i) => $i->toArray(), $this->items),
             'metadata' => $this->metadata,
             'extra' => $this->extra,
-        ], fn($v) => $v !== null && $v !== []);
+        ], fn ($v) => $v !== null && $v !== []);
     }
 }

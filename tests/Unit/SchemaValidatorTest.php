@@ -3,7 +3,7 @@
 use Frolax\Payment\Services\SchemaValidator;
 
 test('SchemaValidator passes with valid payload', function () {
-    $validator = new SchemaValidator();
+    $validator = new SchemaValidator;
 
     expect($validator->passes([
         'order' => ['id' => 'ORD-001'],
@@ -12,7 +12,7 @@ test('SchemaValidator passes with valid payload', function () {
 });
 
 test('SchemaValidator fails without order id', function () {
-    $validator = new SchemaValidator();
+    $validator = new SchemaValidator;
 
     $errors = $validator->validate([
         'money' => ['amount' => 100, 'currency' => 'USD'],
@@ -23,7 +23,7 @@ test('SchemaValidator fails without order id', function () {
 });
 
 test('SchemaValidator fails without money amount', function () {
-    $validator = new SchemaValidator();
+    $validator = new SchemaValidator;
 
     $errors = $validator->validate([
         'order' => ['id' => 'ORD-001'],
@@ -35,7 +35,7 @@ test('SchemaValidator fails without money amount', function () {
 });
 
 test('SchemaValidator rejects negative amount', function () {
-    $validator = new SchemaValidator();
+    $validator = new SchemaValidator;
 
     $errors = $validator->validate([
         'order' => ['id' => 'ORD-001'],
@@ -46,7 +46,7 @@ test('SchemaValidator rejects negative amount', function () {
 });
 
 test('SchemaValidator rejects invalid currency format', function () {
-    $validator = new SchemaValidator();
+    $validator = new SchemaValidator;
 
     $errors = $validator->validate([
         'order' => ['id' => 'ORD-001'],
@@ -57,7 +57,7 @@ test('SchemaValidator rejects invalid currency format', function () {
 });
 
 test('SchemaValidator validates gateway-specific rules', function () {
-    $validator = new SchemaValidator();
+    $validator = new SchemaValidator;
     $validator->forGateway('stripe', [
         'customer.email' => ['required'],
     ]);
@@ -71,7 +71,7 @@ test('SchemaValidator validates gateway-specific rules', function () {
 });
 
 test('SchemaValidator passes with gateway fields present', function () {
-    $validator = new SchemaValidator();
+    $validator = new SchemaValidator;
     $validator->forGateway('stripe', [
         'customer.email' => ['required'],
     ]);

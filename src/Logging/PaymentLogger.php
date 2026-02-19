@@ -11,8 +11,11 @@ use Illuminate\Support\Facades\Log;
 class PaymentLogger implements PaymentLoggerContract
 {
     protected LogLevel $configuredLevel;
+
     protected array $redactedKeys;
+
     protected string $channel;
+
     protected bool $dbLogging;
 
     public function __construct()
@@ -33,7 +36,7 @@ class PaymentLogger implements PaymentLoggerContract
             default => LogLevel::Verbose,
         };
 
-        if (!$this->configuredLevel->allows($requiredLevel)) {
+        if (! $this->configuredLevel->allows($requiredLevel)) {
             return;
         }
 

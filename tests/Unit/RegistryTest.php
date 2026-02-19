@@ -14,18 +14,34 @@ use Illuminate\Http\Request;
 // -------------------------------------------------------
 
 test('registry registers and resolves a gateway', function () {
-    $registry = new GatewayRegistry();
+    $registry = new GatewayRegistry;
 
-    $driver = new class implements GatewayDriverContract {
-        public function name(): string { return 'dummy'; }
-        public function create(CanonicalPayload $p, CredentialsDTO $c): GatewayResult {
+    $driver = new class implements GatewayDriverContract
+    {
+        public function name(): string
+        {
+            return 'dummy';
+        }
+
+        public function create(CanonicalPayload $p, CredentialsDTO $c): GatewayResult
+        {
             return new GatewayResult(status: PaymentStatus::Completed);
         }
-        public function verify(Request $r, CredentialsDTO $c): GatewayResult {
+
+        public function verify(Request $r, CredentialsDTO $c): GatewayResult
+        {
             return new GatewayResult(status: PaymentStatus::Completed);
         }
-        public function setCredentials(CredentialsDTO $c): static { return $this; }
-        public function capabilities(): array { return ['redirect']; }
+
+        public function setCredentials(CredentialsDTO $c): static
+        {
+            return $this;
+        }
+
+        public function capabilities(): array
+        {
+            return ['redirect'];
+        }
     };
 
     $registry->register('dummy', fn () => $driver, 'Dummy', ['redirect']);
@@ -36,12 +52,12 @@ test('registry registers and resolves a gateway', function () {
 });
 
 test('registry throws for unknown gateway', function () {
-    $registry = new GatewayRegistry();
+    $registry = new GatewayRegistry;
     $registry->resolve('nonexistent');
 })->throws(GatewayNotFoundException::class);
 
 test('registry lists all gateways', function () {
-    $registry = new GatewayRegistry();
+    $registry = new GatewayRegistry;
     $registry->register('gw1', fn () => null, 'Gateway 1');
     $registry->register('gw2', fn () => null, 'Gateway 2');
 

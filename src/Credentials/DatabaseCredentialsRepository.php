@@ -22,7 +22,7 @@ class DatabaseCredentialsRepository implements CredentialsRepositoryContract
         if ($tenantId !== null) {
             $query->where(function ($q) use ($tenantId) {
                 $q->where('tenant_id', $tenantId)
-                  ->orWhereNull('tenant_id');
+                    ->orWhereNull('tenant_id');
             });
         } else {
             $query->whereNull('tenant_id');
@@ -30,14 +30,14 @@ class DatabaseCredentialsRepository implements CredentialsRepositoryContract
 
         // Time window filtering
         $query->where(function ($q) use ($now) {
-            $q->where(function ($sub) use ($now) {
+            $q->where(function ($sub) {
                 $sub->whereNull('effective_from')
                     ->whereNull('effective_to');
             })->orWhere(function ($sub) use ($now) {
                 $sub->where('effective_from', '<=', $now)
                     ->where(function ($inner) use ($now) {
                         $inner->whereNull('effective_to')
-                              ->orWhere('effective_to', '>=', $now);
+                            ->orWhere('effective_to', '>=', $now);
                     });
             });
         });
@@ -47,7 +47,7 @@ class DatabaseCredentialsRepository implements CredentialsRepositoryContract
             ->orderBy('priority', 'desc')
             ->first();
 
-        if (!$record) {
+        if (! $record) {
             return null;
         }
 

@@ -3,7 +3,6 @@
 namespace Frolax\Payment\Http\Controllers;
 
 use Frolax\Payment\Contracts\PaymentLoggerContract;
-use Frolax\Payment\Events\PaymentVerified;
 use Frolax\Payment\Payment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

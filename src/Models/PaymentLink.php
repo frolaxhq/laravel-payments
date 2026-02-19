@@ -33,7 +33,7 @@ class PaymentLink extends Model
     protected static function booted(): void
     {
         static::creating(function (PaymentLink $link) {
-            if (!$link->slug) {
+            if (! $link->slug) {
                 $link->slug = Str::random(16);
             }
         });
@@ -43,7 +43,7 @@ class PaymentLink extends Model
 
     public function getUrl(): string
     {
-        return url(config('payments.routes.prefix', 'payments') . "/link/{$this->slug}");
+        return url(config('payments.routes.prefix', 'payments')."/link/{$this->slug}");
     }
 
     public function isExpired(): bool
@@ -58,7 +58,7 @@ class PaymentLink extends Model
 
     public function isUsable(): bool
     {
-        return $this->is_active && !$this->isExpired() && !$this->isUsed();
+        return $this->is_active && ! $this->isExpired() && ! $this->isUsed();
     }
 
     public function markUsed(): void
@@ -71,7 +71,7 @@ class PaymentLink extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true)
-            ->where(fn($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()));
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()));
     }
 
     public function scopeBySlug($query, string $slug)

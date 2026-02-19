@@ -87,7 +87,7 @@ class InvoiceGenerator
     {
         return CreditNote::create([
             'invoice_id' => $invoice->id,
-            'number' => 'CN-' . strtoupper(substr(md5(uniqid()), 0, 8)),
+            'number' => 'CN-'.strtoupper(substr(md5(uniqid()), 0, 8)),
             'amount' => $amount,
             'reason' => $reason,
             'status' => 'issued',

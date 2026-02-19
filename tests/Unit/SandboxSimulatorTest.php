@@ -1,12 +1,12 @@
 <?php
 
+use Frolax\Payment\DTOs\CanonicalPayload;
 use Frolax\Payment\DTOs\GatewayResult;
 use Frolax\Payment\Enums\PaymentStatus;
 use Frolax\Payment\Services\SandboxSimulator;
-use Frolax\Payment\DTOs\CanonicalPayload;
 
 test('SandboxSimulator creates successful payment', function () {
-    $simulator = new SandboxSimulator();
+    $simulator = new SandboxSimulator;
     $payload = CanonicalPayload::fromArray([
         'order' => ['id' => 'ORD-001'],
         'money' => ['amount' => 100, 'currency' => 'USD'],
@@ -21,7 +21,7 @@ test('SandboxSimulator creates successful payment', function () {
 });
 
 test('SandboxSimulator creates failed payment when order contains FAIL', function () {
-    $simulator = new SandboxSimulator();
+    $simulator = new SandboxSimulator;
     $payload = CanonicalPayload::fromArray([
         'order' => ['id' => 'ORD-FAIL-001'],
         'money' => ['amount' => 100, 'currency' => 'USD'],
@@ -34,7 +34,7 @@ test('SandboxSimulator creates failed payment when order contains FAIL', functio
 });
 
 test('SandboxSimulator simulates refund', function () {
-    $simulator = new SandboxSimulator();
+    $simulator = new SandboxSimulator;
     $result = $simulator->simulateRefund('PAY-001', 50.00);
 
     expect($result->status)->toBe(PaymentStatus::Refunded);
@@ -43,7 +43,7 @@ test('SandboxSimulator simulates refund', function () {
 });
 
 test('SandboxSimulator generates webhook payload', function () {
-    $simulator = new SandboxSimulator();
+    $simulator = new SandboxSimulator;
     $webhook = $simulator->simulateWebhook('payment.completed', 'GW-REF-001');
 
     expect($webhook['id'])->toStartWith('evt_sim_');

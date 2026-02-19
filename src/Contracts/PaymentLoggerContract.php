@@ -7,10 +7,10 @@ interface PaymentLoggerContract
     /**
      * Log a payment event.
      *
-     * @param  string  $level    Log level (info, warning, error, debug)
-     * @param  string  $category Category (e.g. "payment.create", "webhook.received")
+     * @param  string  $level  Log level (info, warning, error, debug)
+     * @param  string  $category  Category (e.g. "payment.create", "webhook.received")
      * @param  string  $message  Human-readable message
-     * @param  array   $context  Context data (will be flattened to dot-notation for DB)
+     * @param  array  $context  Context data (will be flattened to dot-notation for DB)
      */
     public function log(string $level, string $category, string $message, array $context = []): void;
 

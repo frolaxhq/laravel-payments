@@ -3,7 +3,6 @@
 use Frolax\Payment\DTOs\CanonicalSubscriptionPayload;
 use Frolax\Payment\DTOs\PlanDTO;
 use Frolax\Payment\DTOs\SubscriptionItemDTO;
-use Frolax\Payment\Enums\BillingInterval;
 
 // -------------------------------------------------------
 // PlanDTO

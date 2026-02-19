@@ -12,7 +12,7 @@ class TaxCalculator
     public function calculate(float $amount, ?string $region = null): array
     {
         $taxRates = TaxRate::active()
-            ->when($region, fn($q) => $q->forRegion($region))
+            ->when($region, fn ($q) => $q->forRegion($region))
             ->get();
 
         if ($taxRates->isEmpty()) {

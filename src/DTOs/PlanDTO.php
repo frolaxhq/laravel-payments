@@ -18,7 +18,7 @@ final readonly class PlanDTO
 
     public static function fromArray(array $data): static
     {
-        return new static(
+        return new self(
             id: $data['id'],
             name: $data['name'],
             money: MoneyDTO::fromArray($data['money']),

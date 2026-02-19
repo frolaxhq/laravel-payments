@@ -21,7 +21,7 @@ class ReplayWebhookCommand extends Command
 
         $event = PaymentWebhookEvent::find($eventId);
 
-        if (!$event) {
+        if (! $event) {
             $this->error("Webhook event [{$eventId}] not found.");
 
             return self::FAILURE;
@@ -31,9 +31,9 @@ class ReplayWebhookCommand extends Command
         $this->line("  Gateway: {$event->gateway_name}");
         $this->line("  Event Type: {$event->event_type}");
         $this->line("  Gateway Reference: {$event->gateway_reference}");
-        $this->line("  Originally Processed: " . ($event->processed ? 'Yes' : 'No'));
+        $this->line('  Originally Processed: '.($event->processed ? 'Yes' : 'No'));
 
-        if (!$this->confirm('Do you want to proceed with the replay?', true)) {
+        if (! $this->confirm('Do you want to proceed with the replay?', true)) {
             return self::SUCCESS;
         }
 
@@ -47,7 +47,7 @@ class ReplayWebhookCommand extends Command
             $credentialsRepo = app(\Frolax\Payment\Contracts\CredentialsRepositoryContract::class);
             $creds = $credentialsRepo->get($event->gateway_name, config('payments.profile', 'test'));
 
-            if (!$creds) {
+            if (! $creds) {
                 $this->error('No credentials found for this gateway.');
 
                 return self::FAILURE;
@@ -106,7 +106,7 @@ class ReplayWebhookCommand extends Command
     {
         $server = [];
         foreach ($headers as $key => $values) {
-            $serverKey = 'HTTP_' . strtoupper(str_replace('-', '_', $key));
+            $serverKey = 'HTTP_'.strtoupper(str_replace('-', '_', $key));
             $server[$serverKey] = is_array($values) ? ($values[0] ?? '') : $values;
         }
 

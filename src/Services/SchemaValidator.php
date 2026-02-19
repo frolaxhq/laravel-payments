@@ -2,8 +2,6 @@
 
 namespace Frolax\Payment\Services;
 
-use Frolax\Payment\DTOs\CanonicalPayload;
-
 class SchemaValidator
 {
     protected array $requiredFields = [
@@ -31,7 +29,7 @@ class SchemaValidator
 
         // Core validation
         foreach ($this->requiredFields as $field) {
-            if (!$this->hasNestedValue($data, $field)) {
+            if (! $this->hasNestedValue($data, $field)) {
                 $errors[] = [
                     'field' => $field,
                     'rule' => 'required',
@@ -61,7 +59,7 @@ class SchemaValidator
         // Gateway-specific rules
         if ($gateway && isset($this->gatewayRules[$gateway])) {
             foreach ($this->gatewayRules[$gateway] as $field => $rules) {
-                if (in_array('required', (array) $rules) && !$this->hasNestedValue($data, $field)) {
+                if (in_array('required', (array) $rules) && ! $this->hasNestedValue($data, $field)) {
                     $errors[] = [
                         'field' => $field,
                         'rule' => 'required',
@@ -88,7 +86,7 @@ class SchemaValidator
         $current = $data;
 
         foreach ($keys as $key) {
-            if (!is_array($current) || !array_key_exists($key, $current)) {
+            if (! is_array($current) || ! array_key_exists($key, $current)) {
                 return false;
             }
             $current = $current[$key];

@@ -1,7 +1,6 @@
 <?php
 
 use Frolax\Payment\Models\Coupon;
-use Frolax\Payment\Models\CouponUsage;
 
 // -------------------------------------------------------
 // Coupon Validation

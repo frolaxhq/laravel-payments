@@ -40,14 +40,24 @@ class Coupon extends Model
 
     public function isValid(?float $orderAmount = null, ?string $customerEmail = null): bool
     {
-        if (!$this->is_active) return false;
-        if ($this->expires_at && $this->expires_at->isPast()) return false;
-        if ($this->max_uses && $this->used_count >= $this->max_uses) return false;
-        if ($orderAmount !== null && $this->min_spend && $orderAmount < $this->min_spend) return false;
+        if (! $this->is_active) {
+            return false;
+        }
+        if ($this->expires_at && $this->expires_at->isPast()) {
+            return false;
+        }
+        if ($this->max_uses && $this->used_count >= $this->max_uses) {
+            return false;
+        }
+        if ($orderAmount !== null && $this->min_spend && $orderAmount < $this->min_spend) {
+            return false;
+        }
 
         if ($customerEmail && $this->max_uses_per_customer) {
             $customerUses = $this->usages()->where('customer_email', $customerEmail)->count();
-            if ($customerUses >= $this->max_uses_per_customer) return false;
+            if ($customerUses >= $this->max_uses_per_customer) {
+                return false;
+            }
         }
 
         return true;
@@ -85,7 +95,7 @@ class Coupon extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true)
-            ->where(fn($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()));
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()));
     }
 
     public function scopeByCode($query, string $code)

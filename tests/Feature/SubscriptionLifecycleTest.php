@@ -8,8 +8,8 @@ use Frolax\Payment\DTOs\CredentialsDTO;
 use Frolax\Payment\DTOs\GatewayResult;
 use Frolax\Payment\Enums\PaymentStatus;
 use Frolax\Payment\Enums\SubscriptionStatus;
-use Frolax\Payment\Events\SubscriptionCreated;
 use Frolax\Payment\Events\SubscriptionCancelled;
+use Frolax\Payment\Events\SubscriptionCreated;
 use Frolax\Payment\Events\SubscriptionPaused;
 use Frolax\Payment\Events\SubscriptionResumed;
 use Frolax\Payment\GatewayRegistry;
@@ -20,32 +20,60 @@ use Illuminate\Support\Facades\Event;
 
 function createRecurringDriver(): GatewayDriverContract&SupportsRecurring
 {
-    return new class implements GatewayDriverContract, SupportsRecurring {
-        public function name(): string { return 'recurring_mock'; }
-        public function create(CanonicalPayload $p, CredentialsDTO $c): GatewayResult {
-            return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: 'GW-' . uniqid());
+    return new class implements GatewayDriverContract, SupportsRecurring
+    {
+        public function name(): string
+        {
+            return 'recurring_mock';
         }
-        public function verify(Request $r, CredentialsDTO $c): GatewayResult {
+
+        public function create(CanonicalPayload $p, CredentialsDTO $c): GatewayResult
+        {
+            return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: 'GW-'.uniqid());
+        }
+
+        public function verify(Request $r, CredentialsDTO $c): GatewayResult
+        {
             return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: 'GW-REF');
         }
-        public function setCredentials(CredentialsDTO $c): static { return $this; }
-        public function capabilities(): array { return ['redirect', 'recurring']; }
-        public function createSubscription(CanonicalSubscriptionPayload $p, CredentialsDTO $c): GatewayResult {
-            return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: 'sub_' . uniqid());
+
+        public function setCredentials(CredentialsDTO $c): static
+        {
+            return $this;
         }
-        public function cancelSubscription(string $id, CredentialsDTO $c): GatewayResult {
+
+        public function capabilities(): array
+        {
+            return ['redirect', 'recurring'];
+        }
+
+        public function createSubscription(CanonicalSubscriptionPayload $p, CredentialsDTO $c): GatewayResult
+        {
+            return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: 'sub_'.uniqid());
+        }
+
+        public function cancelSubscription(string $id, CredentialsDTO $c): GatewayResult
+        {
             return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: $id);
         }
-        public function pauseSubscription(string $id, CredentialsDTO $c): GatewayResult {
+
+        public function pauseSubscription(string $id, CredentialsDTO $c): GatewayResult
+        {
             return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: $id);
         }
-        public function resumeSubscription(string $id, CredentialsDTO $c): GatewayResult {
+
+        public function resumeSubscription(string $id, CredentialsDTO $c): GatewayResult
+        {
             return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: $id);
         }
-        public function updateSubscription(string $id, array $changes, CredentialsDTO $c): GatewayResult {
+
+        public function updateSubscription(string $id, array $changes, CredentialsDTO $c): GatewayResult
+        {
             return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: $id);
         }
-        public function getSubscriptionStatus(string $id, CredentialsDTO $c): GatewayResult {
+
+        public function getSubscriptionStatus(string $id, CredentialsDTO $c): GatewayResult
+        {
             return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: $id);
         }
     };
@@ -213,16 +241,32 @@ test('subscription lifecycle: update quantity', function () {
 
 test('subscription throws for non-recurring gateway', function () {
     $registry = app(GatewayRegistry::class);
-    $registry->register('basic', fn () => new class implements GatewayDriverContract {
-        public function name(): string { return 'basic'; }
-        public function create(CanonicalPayload $p, CredentialsDTO $c): GatewayResult {
+    $registry->register('basic', fn () => new class implements GatewayDriverContract
+    {
+        public function name(): string
+        {
+            return 'basic';
+        }
+
+        public function create(CanonicalPayload $p, CredentialsDTO $c): GatewayResult
+        {
             return new GatewayResult(status: PaymentStatus::Completed);
         }
-        public function verify(Request $r, CredentialsDTO $c): GatewayResult {
+
+        public function verify(Request $r, CredentialsDTO $c): GatewayResult
+        {
             return new GatewayResult(status: PaymentStatus::Completed);
         }
-        public function setCredentials(CredentialsDTO $c): static { return $this; }
-        public function capabilities(): array { return []; }
+
+        public function setCredentials(CredentialsDTO $c): static
+        {
+            return $this;
+        }
+
+        public function capabilities(): array
+        {
+            return [];
+        }
     }, 'Basic');
 
     config()->set('payments.gateways.basic.test', ['key' => 'k']);

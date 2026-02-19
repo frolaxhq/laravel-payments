@@ -47,7 +47,7 @@ class PaymentServiceProvider extends PackageServiceProvider
     {
         // Register GatewayRegistry as singleton
         $this->app->singleton(GatewayRegistry::class, function () {
-            return new GatewayRegistry();
+            return new GatewayRegistry;
         });
 
         // Register CredentialsRepository based on config
@@ -55,15 +55,15 @@ class PaymentServiceProvider extends PackageServiceProvider
             $storage = config('payments.credential_storage', 'env');
 
             return match ($storage) {
-                'database' => new DatabaseCredentialsRepository(),
+                'database' => new DatabaseCredentialsRepository,
                 'composite' => CompositeCredentialsRepository::default(),
-                default => new EnvCredentialsRepository(),
+                default => new EnvCredentialsRepository,
             };
         });
 
         // Register PaymentLogger
         $this->app->singleton(PaymentLoggerContract::class, function () {
-            return new PaymentLogger();
+            return new PaymentLogger;
         });
 
         // Register Payment manager
@@ -90,7 +90,7 @@ class PaymentServiceProvider extends PackageServiceProvider
     public function packageBooted(): void
     {
         // Register routes conditionally
-        if (!config('payments.routes.enabled', true)) {
+        if (! config('payments.routes.enabled', true)) {
             // Routes are registered via hasRoute(), but we can't conditionally
             // remove them easily. The route file itself checks config.
         }

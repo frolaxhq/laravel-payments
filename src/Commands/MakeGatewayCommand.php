@@ -49,15 +49,14 @@ class MakeGatewayCommand extends Command
         string $key,
         string $displayName,
         string $className,
-        array  $capabilities,
-        array  $profiles,
-        array  $credentials,
+        array $capabilities,
+        array $profiles,
+        array $credentials,
         string $namespace,
-    ): int
-    {
+    ): int {
         $basePath = base_path("app/Payment/Gateways/{$className}");
 
-        if (!is_dir($basePath)) {
+        if (! is_dir($basePath)) {
             mkdir($basePath, 0755, true);
         }
 
@@ -68,7 +67,7 @@ class MakeGatewayCommand extends Command
 
         // Generate test file
         $testDir = base_path("tests/Payment/Gateways/{$className}");
-        if (!is_dir($testDir)) {
+        if (! is_dir($testDir)) {
             mkdir($testDir, 0755, true);
         }
         $testContent = $this->generateTestFile($className, $key, $namespace, false);
@@ -87,7 +86,7 @@ class MakeGatewayCommand extends Command
 
         $this->newLine();
         $this->info("Gateway [{$displayName}] skeleton generated successfully!");
-        $this->line("Register it in your service provider:");
+        $this->line('Register it in your service provider:');
         $this->line("  \$registry->register('{$key}', \\App\\Payment\\Gateways\\{$className}\\{$className}Driver::class);");
 
         return self::SUCCESS;
@@ -98,22 +97,21 @@ class MakeGatewayCommand extends Command
         string $key,
         string $displayName,
         string $className,
-        array  $capabilities,
-        array  $profiles,
-        array  $credentials,
+        array $capabilities,
+        array $profiles,
+        array $credentials,
         string $namespace,
-    ): int
-    {
+    ): int {
         $vendorName = Str::kebab($name);
         $basePath = base_path("packages/frolax/payment-{$vendorName}");
 
-        if (!is_dir($basePath)) {
+        if (! is_dir($basePath)) {
             mkdir($basePath, 0755, true);
         }
 
         $dirs = ['src', 'config', 'tests', 'docs'];
         foreach ($dirs as $dir) {
-            if (!is_dir("{$basePath}/{$dir}")) {
+            if (! is_dir("{$basePath}/{$dir}")) {
                 mkdir("{$basePath}/{$dir}", 0755, true);
             }
         }
@@ -160,8 +158,8 @@ class MakeGatewayCommand extends Command
         $this->line('');
         $this->line('Next steps:');
         $this->line("  1. cd {$basePath}");
-        $this->line('  2. Implement the driver methods in src/' . $className . 'Driver.php');
-        $this->line('  3. Install via: composer require frolax/payment-' . $vendorName);
+        $this->line('  2. Implement the driver methods in src/'.$className.'Driver.php');
+        $this->line('  3. Install via: composer require frolax/payment-'.$vendorName);
         $this->line('  4. Gateway becomes available immediately (auto-discovered)');
 
         return self::SUCCESS;
@@ -175,13 +173,12 @@ class MakeGatewayCommand extends Command
         string $className,
         string $key,
         string $displayName,
-        array  $capabilities,
-        array  $credentials,
+        array $capabilities,
+        array $credentials,
         string $namespaceName,
-        bool   $isAddon,
-    ): string
-    {
-        $file = new PhpFile();
+        bool $isAddon,
+    ): string {
+        $file = new PhpFile;
         $file->setStrictTypes();
 
         $namespace = $file->addNamespace($namespaceName);
@@ -234,7 +231,7 @@ class MakeGatewayCommand extends Command
         $class->addMethod('capabilities')
             ->setPublic()
             ->setReturnType('array')
-            ->setBody("return [\n    " . implode(",\n    ", array_map(fn($c) => "'{$c}'", $capabilities)) . ",\n];");
+            ->setBody("return [\n    ".implode(",\n    ", array_map(fn ($c) => "'{$c}'", $capabilities)).",\n];");
 
         $create = $class->addMethod('create')
             ->setPublic()
@@ -281,7 +278,7 @@ PHP
 
         $this->addCapabilityMethods($class, $capabilities);
 
-        return (string)$file;
+        return (string) $file;
     }
 
     protected function addCapabilityMethods(ClassType $class, array $capabilities): void
@@ -342,12 +339,11 @@ PHP
         string $className,
         string $key,
         string $displayName,
-        array  $capabilities,
-        array  $credentials,
+        array $capabilities,
+        array $credentials,
         string $namespaceName,
-    ): string
-    {
-        $file = new PhpFile();
+    ): string {
+        $file = new PhpFile;
         $file->setStrictTypes();
 
         $namespace = $file->addNamespace($namespaceName);
@@ -374,24 +370,24 @@ PHP
         $class->addMethod('capabilities')
             ->setPublic()
             ->setReturnType('array')
-            ->setBody("return [\n    " . implode(",\n    ", array_map(fn($c) => "'{$c}'", $capabilities)) . ",\n];");
+            ->setBody("return [\n    ".implode(",\n    ", array_map(fn ($c) => "'{$c}'", $capabilities)).",\n];");
 
         $class->addMethod('credentialSchema')
             ->setPublic()
             ->setReturnType('array')
-            ->setBody("return [\n    " . implode(",\n    ", array_map(fn($k, $v) => "'{$k}' => '{$v}'", array_keys($credentials), array_values($credentials))) . ",\n];");
+            ->setBody("return [\n    ".implode(",\n    ", array_map(fn ($k, $v) => "'{$k}' => '{$v}'", array_keys($credentials), array_values($credentials))).",\n];");
 
         $class->addMethod('defaultConfig')
             ->setPublic()
             ->setReturnType('array')
             ->setBody('return [];');
 
-        return (string)$file;
+        return (string) $file;
     }
 
     protected function generateAddonServiceProvider(string $className, string $namespaceName): string
     {
-        $file = new PhpFile();
+        $file = new PhpFile;
         $file->setStrictTypes();
 
         $namespace = $file->addNamespace($namespaceName);
@@ -406,7 +402,7 @@ PHP
             ->setReturnType('Frolax\Payment\Contracts\GatewayAddonContract')
             ->setBody("return new {$className}GatewayAddon();");
 
-        return (string)$file;
+        return (string) $file;
     }
 
     protected function generateAddonComposer(string $vendorName, string $name, string $className, string $namespace): string
@@ -439,7 +435,7 @@ PHP
 
     protected function generateTestFile(string $className, string $key, string $namespaceName, bool $isAddon): string
     {
-        $file = new PhpFile();
+        $file = new PhpFile;
         // Pest doesn't usually use strict types in tests, so we'll skip it here for consistency with typical Pest files
 
         // Nette doesn't directly support Pest's top-level functions easily as "methods",
@@ -452,7 +448,7 @@ PHP
         $namespace->addUse('Frolax\Payment\DTOs\GatewayResult');
         $namespace->addUse("{$namespaceName}\\{$className}Driver");
 
-        $content = (string)$file;
+        $content = (string) $file;
         $content .= "\n";
         $content .= <<<PHP
 test('{$key} driver returns correct name', function () {
@@ -496,7 +492,7 @@ PHP;
         foreach ($profiles as $profile) {
             $lines[] = "//     '{$profile}' => [";
             foreach ($credentials as $credKey => $requirement) {
-                $envKey = strtoupper($key . '_' . $profile . '_' . $credKey);
+                $envKey = strtoupper($key.'_'.$profile.'_'.$credKey);
                 $lines[] = "//         '{$credKey}' => env('{$envKey}'),";
             }
             $lines[] = '//     ],';
@@ -504,7 +500,7 @@ PHP;
 
         $lines[] = '// ],';
 
-        return implode("\n", $lines) . "\n";
+        return implode("\n", $lines)."\n";
     }
 
     protected function generateAddonConfig(string $key, array $profiles, array $credentials): string
@@ -513,7 +509,7 @@ PHP;
         foreach ($profiles as $profile) {
             $profileConfig .= "\n    '{$profile}' => [\n";
             foreach ($credentials as $credKey => $requirement) {
-                $envKey = strtoupper($key . '_' . $profile . '_' . $credKey);
+                $envKey = strtoupper($key.'_'.$profile.'_'.$credKey);
                 $profileConfig .= "        '{$credKey}' => env('{$envKey}'),\n";
             }
             $profileConfig .= "    ],\n";

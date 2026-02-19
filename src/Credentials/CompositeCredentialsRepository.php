@@ -17,8 +17,8 @@ class CompositeCredentialsRepository implements CredentialsRepositoryContract
     public static function default(): self
     {
         return new self([
-            new DatabaseCredentialsRepository(),
-            new EnvCredentialsRepository(),
+            new DatabaseCredentialsRepository,
+            new EnvCredentialsRepository,
         ]);
     }
 

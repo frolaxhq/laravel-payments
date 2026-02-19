@@ -9,5 +9,6 @@ use Frolax\Payment\DTOs\GatewayResult;
 interface SupportsBuyNowPayLater
 {
     public function createBNPLSession(CanonicalPayload $payload, CredentialsDTO $credentials): GatewayResult;
+
     public function getBNPLPlans(CanonicalPayload $payload, CredentialsDTO $credentials): array;
 }

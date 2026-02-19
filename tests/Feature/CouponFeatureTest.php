@@ -76,7 +76,7 @@ test('coupon scope finds active non-expired coupons', function () {
     ]);
 
     $active = Coupon::where('is_active', true)
-        ->where(fn($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+        ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
         ->get();
 
     expect($active)->toHaveCount(1);

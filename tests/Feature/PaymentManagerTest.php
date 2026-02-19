@@ -1,7 +1,6 @@
 <?php
 
 use Frolax\Payment\Contracts\GatewayDriverContract;
-use Frolax\Payment\Contracts\PaymentLoggerContract;
 use Frolax\Payment\DTOs\CanonicalPayload;
 use Frolax\Payment\DTOs\CredentialsDTO;
 use Frolax\Payment\DTOs\GatewayResult;
@@ -15,20 +14,36 @@ use Illuminate\Http\Request;
 
 function createDummyDriver(): GatewayDriverContract
 {
-    return new class implements GatewayDriverContract {
-        public function name(): string { return 'dummy'; }
-        public function create(CanonicalPayload $p, CredentialsDTO $c): GatewayResult {
+    return new class implements GatewayDriverContract
+    {
+        public function name(): string
+        {
+            return 'dummy';
+        }
+
+        public function create(CanonicalPayload $p, CredentialsDTO $c): GatewayResult
+        {
             return new GatewayResult(
                 status: PaymentStatus::Pending,
-                gatewayReference: 'GW-REF-' . $p->idempotencyKey,
+                gatewayReference: 'GW-REF-'.$p->idempotencyKey,
                 redirectUrl: 'https://gateway.test/pay',
             );
         }
-        public function verify(Request $r, CredentialsDTO $c): GatewayResult {
+
+        public function verify(Request $r, CredentialsDTO $c): GatewayResult
+        {
             return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: 'GW-REF-001');
         }
-        public function setCredentials(CredentialsDTO $c): static { return $this; }
-        public function capabilities(): array { return ['redirect']; }
+
+        public function setCredentials(CredentialsDTO $c): static
+        {
+            return $this;
+        }
+
+        public function capabilities(): array
+        {
+            return ['redirect'];
+        }
     };
 }
 

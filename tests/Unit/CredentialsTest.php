@@ -8,7 +8,7 @@ test('env repository resolves credentials from config', function () {
         'secret' => 'test_secret',
     ]);
 
-    $repo = new EnvCredentialsRepository();
+    $repo = new EnvCredentialsRepository;
     $creds = $repo->get('test_gw', 'test');
 
     expect($creds)->not->toBeNull();
@@ -19,7 +19,7 @@ test('env repository resolves credentials from config', function () {
 });
 
 test('env repository returns null for missing gateway', function () {
-    $repo = new EnvCredentialsRepository();
+    $repo = new EnvCredentialsRepository;
     $creds = $repo->get('nonexistent', 'test');
 
     expect($creds)->toBeNull();
@@ -28,7 +28,7 @@ test('env repository returns null for missing gateway', function () {
 test('env repository has() returns true for existing credentials', function () {
     config()->set('payments.gateways.check_gw.live', ['key' => 'k']);
 
-    $repo = new EnvCredentialsRepository();
+    $repo = new EnvCredentialsRepository;
 
     expect($repo->has('check_gw', 'live'))->toBeTrue();
     expect($repo->has('check_gw', 'test'))->toBeFalse();

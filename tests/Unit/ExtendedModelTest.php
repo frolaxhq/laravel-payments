@@ -1,9 +1,9 @@
 <?php
 
-use Frolax\Payment\Models\PaymentMethod;
-use Frolax\Payment\Models\PaymentLink;
-use Frolax\Payment\Models\Subscription;
 use Frolax\Payment\Enums\SubscriptionStatus;
+use Frolax\Payment\Models\PaymentLink;
+use Frolax\Payment\Models\PaymentMethod;
+use Frolax\Payment\Models\Subscription;
 
 // -------------------------------------------------------
 // Subscription Model
