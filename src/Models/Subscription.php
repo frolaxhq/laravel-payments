@@ -2,9 +2,13 @@
 
 namespace Frolax\Payment\Models;
 
+use App\Models\Plan;
 use Frolax\Payment\Enums\SubscriptionStatus;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Subscription extends Model
@@ -34,8 +38,6 @@ class Subscription extends Model
         ];
     }
 
-    // ── Relationships ──
-
     public function items(): HasMany
     {
         return $this->hasMany(SubscriptionItem::class);
@@ -46,12 +48,10 @@ class Subscription extends Model
         return $this->hasMany(SubscriptionUsage::class);
     }
 
-    public function plan()
+    public function plan(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\Plan::class);
+        return $this->belongsTo(Plan::class);
     }
-
-    // ── State Checks ──
 
     public function isActive(): bool
     {
@@ -85,9 +85,8 @@ class Subscription extends Model
         return $this->status === SubscriptionStatus::Cancelled;
     }
 
-    // ── Scopes ──
-
-    public function scopeActive($query)
+    #[Scope]
+    protected function active(Builder $query): Builder
     {
         return $query->whereIn('status', [
             SubscriptionStatus::Active,
@@ -95,22 +94,26 @@ class Subscription extends Model
         ]);
     }
 
-    public function scopeForGateway($query, string $gateway)
+    #[Scope]
+    protected function forGateway(Builder $query, string $gateway): Builder
     {
         return $query->where('gateway_name', $gateway);
     }
 
-    public function scopeForTenant($query, string $tenantId)
+    #[Scope]
+    public function forTenant(Builder $query, string $tenantId): Builder
     {
         return $query->where('tenant_id', $tenantId);
     }
 
-    public function scopeForPlan($query, string $planId)
+    #[Scope]
+    public function forPlan(Builder $query, string $planId): Builder
     {
         return $query->where('plan_id', $planId);
     }
 
-    public function scopeExpiring($query, int $withinDays = 7)
+    #[Scope]
+    public function expiring(Builder $query, int $withinDays = 7): Builder
     {
         return $query->where('current_period_end', '<=', now()->addDays($withinDays))
             ->where('status', SubscriptionStatus::Active);

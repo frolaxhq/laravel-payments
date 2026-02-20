@@ -5,9 +5,11 @@ Manage recurring billing with full subscription lifecycle support.
 ## Creating a Subscription
 
 ```php
-use Frolax\Payment\Facades\Payment;
+use Frolax\Payment\SubscriptionManager;
 
-$result = Payment::gateway('stripe')->subscribe([
+$manager = app(SubscriptionManager::class);
+
+$result = $manager->gateway('stripe')->create([
     'plan' => [
         'id' => 'plan_pro',
         'name' => 'Pro Plan',
@@ -30,16 +32,16 @@ $result = Payment::gateway('stripe')->subscribe([
 
 ```php
 // Cancel (immediate or at period end)
-Payment::gateway('stripe')->cancelSubscription('sub_xxx');
+$manager->gateway('stripe')->cancel('sub_xxx');
 
 // Pause
-Payment::gateway('stripe')->pauseSubscription('sub_xxx');
+$manager->gateway('stripe')->pause('sub_xxx');
 
 // Resume
-Payment::gateway('stripe')->resumeSubscription('sub_xxx');
+$manager->gateway('stripe')->resume('sub_xxx');
 
 // Update (change plan, quantity, etc.)
-Payment::gateway('stripe')->updateSubscription('sub_xxx', [
+$manager->gateway('stripe')->update('sub_xxx', [
     'plan' => ['id' => 'plan_enterprise'],
     'quantity' => 5,
 ]);
@@ -67,7 +69,7 @@ $subscription->isPastDue();
 Support metered billing and multiple line items:
 
 ```php
-$result = Payment::gateway('stripe')->subscribe([
+$result = $manager->gateway('stripe')->create([
     'plan' => [
         'id' => 'plan_usage',
         'name' => 'Usage Plan',

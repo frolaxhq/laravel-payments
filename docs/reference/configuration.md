@@ -75,7 +75,7 @@ Each gateway has credential sets keyed by profile (`test`, `live`, or custom pro
 'logging' => [
     'level' => env('PAYMENT_LOG_LEVEL', 'basic'),
     'channel' => env('PAYMENT_LOG_CHANNEL', null),
-    'db_logging' => true,
+    'db_logging' => false,
     'redacted_keys' => [
         'secret', 'password', 'token', 'key',
         'card_number', 'cvv', 'cvc', 'pin',
@@ -88,7 +88,7 @@ Each gateway has credential sets keyed by profile (`test`, `live`, or custom pro
 |-----|---------|-------------|
 | `level` | `basic` | Log verbosity: `off`, `errors_only`, `basic`, `verbose`, `debug` |
 | `channel` | `null` | Laravel log channel (null = default) |
-| `db_logging` | `true` | Store logs in `payment_logs` table |
+| `db_logging` | `false` | Store logs in `payment_logs` table |
 | `redacted_keys` | `[...]` | Keys to mask as `[REDACTED]` |
 
 ## Persistence

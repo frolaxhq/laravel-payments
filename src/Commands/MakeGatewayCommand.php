@@ -109,7 +109,7 @@ class MakeGatewayCommand extends Command
             mkdir($basePath, 0755, true);
         }
 
-        $dirs = ['src', 'config', 'tests', 'docs'];
+        $dirs = ['src', 'config', 'tests'];
         foreach ($dirs as $dir) {
             if (! is_dir("{$basePath}/{$dir}")) {
                 mkdir("{$basePath}/{$dir}", 0755, true);
@@ -150,8 +150,8 @@ class MakeGatewayCommand extends Command
 
         // Docs
         $docsContent = $this->generateDocs($name, $key, $displayName, $capabilities, $credentials, $profiles);
-        file_put_contents("{$basePath}/docs/README.md", $docsContent);
-        $this->info("Created: {$basePath}/docs/README.md");
+        file_put_contents("{$basePath}/README.md", $docsContent);
+        $this->info("Created: {$basePath}/README.md");
 
         $this->newLine();
         $this->info("Addon package [{$displayName}] generated at: {$basePath}");

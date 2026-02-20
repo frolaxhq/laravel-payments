@@ -101,7 +101,7 @@ return [
             'authorization',
         ],
 
-        'db_logging' => true,
+        'db_logging' => false,
     ],
 
     /*

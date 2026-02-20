@@ -63,16 +63,7 @@ Verify a payment from a gateway callback request.
 $result = Payment::gateway('stripe')->verifyFromRequest($request);
 ```
 
-#### `refund(array $data): GatewayResult`
 
-Process a refund. Gateway driver must implement `SupportsRefund`.
-
-```php
-$result = Payment::gateway('stripe')->refund([
-    'payment_id' => 'PAY-001',
-    'money' => ['amount' => 50, 'currency' => 'USD'],
-]);
-```
 
 #### `status(array $data): GatewayResult`
 

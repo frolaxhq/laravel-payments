@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\Facade;
  * @method static \Frolax\Payment\Payment usingCredentials(array $credentials)
  * @method static GatewayResult create(array $data)
  * @method static GatewayResult verifyFromRequest(\Illuminate\Http\Request $request)
- * @method static GatewayResult refund(array $data)
  * @method static GatewayResult status(array $data)
  *
  * @see \Frolax\Payment\Payment

@@ -5,31 +5,18 @@ namespace Frolax\Payment;
 use Frolax\Payment\Contracts\CredentialsRepositoryContract;
 use Frolax\Payment\Contracts\GatewayDriverContract;
 use Frolax\Payment\Contracts\PaymentLoggerContract;
-use Frolax\Payment\Contracts\SupportsRecurring;
-use Frolax\Payment\Contracts\SupportsRefund;
 use Frolax\Payment\Contracts\SupportsStatusQuery;
 use Frolax\Payment\DTOs\CanonicalPayload;
-use Frolax\Payment\DTOs\CanonicalRefundPayload;
 use Frolax\Payment\DTOs\CanonicalStatusPayload;
-use Frolax\Payment\DTOs\CanonicalSubscriptionPayload;
 use Frolax\Payment\DTOs\CredentialsDTO;
 use Frolax\Payment\DTOs\GatewayResult;
 use Frolax\Payment\Enums\AttemptStatus;
 use Frolax\Payment\Enums\PaymentStatus;
-use Frolax\Payment\Enums\RefundStatus;
-use Frolax\Payment\Enums\SubscriptionStatus;
 use Frolax\Payment\Events\PaymentCreated;
 use Frolax\Payment\Events\PaymentFailed;
-use Frolax\Payment\Events\PaymentRefunded;
-use Frolax\Payment\Events\PaymentRefundRequested;
 use Frolax\Payment\Events\PaymentVerified;
-use Frolax\Payment\Events\SubscriptionCancelled;
-use Frolax\Payment\Events\SubscriptionCreated;
-use Frolax\Payment\Events\SubscriptionPaused;
-use Frolax\Payment\Events\SubscriptionResumed;
 use Frolax\Payment\Exceptions\MissingCredentialsException;
 use Frolax\Payment\Exceptions\UnsupportedCapabilityException;
-use Frolax\Payment\Models\Subscription;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -47,7 +34,9 @@ class Payment
         protected GatewayRegistry $registry,
         protected CredentialsRepositoryContract $credentialsRepo,
         protected PaymentLoggerContract $logger,
-    ) {}
+        protected PaymentConfig $config,
+    ) {
+    }
 
     /**
      * Select a gateway by name.
@@ -55,7 +44,7 @@ class Payment
     public function gateway(?string $name = null): static
     {
         $clone = clone $this;
-        $clone->gatewayName = $name ?? config('payments.default');
+        $clone->gatewayName = $name ?? $this->config->defaultGateway;
 
         return $clone;
     }
@@ -115,7 +104,7 @@ class Payment
         ]);
 
         // Check idempotency: if a payment with this key already exists, return it
-        if (config('payments.persistence.enabled') && config('payments.persistence.payments')) {
+        if ($this->config->shouldPersistPayments()) {
             $existing = Models\PaymentModel::where('idempotency_key', $payload->idempotencyKey)->first();
             if ($existing && $existing->status !== PaymentStatus::Pending->value) {
                 $this->logger->info('payment.create.idempotent', "Idempotent hit for key [{$payload->idempotencyKey}]", [
@@ -132,7 +121,7 @@ class Payment
         // Persist payment record
         $paymentId = (string) Str::ulid();
 
-        if (config('payments.persistence.enabled') && config('payments.persistence.payments')) {
+        if ($this->config->shouldPersistPayments()) {
             Models\PaymentModel::create([
                 'id' => $paymentId,
                 'order_id' => $payload->order->id,
@@ -159,7 +148,7 @@ class Payment
             $elapsed = round((microtime(true) - $startTime) * 1000, 2);
 
             // Persist attempt
-            if (config('payments.persistence.enabled') && config('payments.persistence.attempts')) {
+            if ($this->config->shouldPersistAttempts()) {
                 Models\PaymentAttempt::create([
                     'id' => (string) Str::ulid(),
                     'payment_id' => $paymentId,
@@ -173,7 +162,7 @@ class Payment
             }
 
             // Update payment record
-            if (config('payments.persistence.enabled') && config('payments.persistence.payments')) {
+            if ($this->config->shouldPersistPayments()) {
                 Models\PaymentModel::where('id', $paymentId)->update([
                     'status' => $result->status->value,
                     'gateway_reference' => $result->gatewayReference,
@@ -202,7 +191,7 @@ class Payment
         } catch (\Throwable $e) {
             $elapsed = round((microtime(true) - $startTime) * 1000, 2);
 
-            if (config('payments.persistence.enabled') && config('payments.persistence.attempts')) {
+            if ($this->config->shouldPersistAttempts()) {
                 Models\PaymentAttempt::create([
                     'id' => (string) Str::ulid(),
                     'payment_id' => $paymentId,
@@ -213,7 +202,7 @@ class Payment
                 ]);
             }
 
-            if (config('payments.persistence.enabled') && config('payments.persistence.payments')) {
+            if ($this->config->shouldPersistPayments()) {
                 Models\PaymentModel::where('id', $paymentId)->update([
                     'status' => PaymentStatus::Failed->value,
                 ]);
@@ -257,7 +246,7 @@ class Payment
             ]);
 
             // Update payment record if persisted
-            if (config('payments.persistence.enabled') && config('payments.persistence.payments') && $result->gatewayReference) {
+            if ($this->config->shouldPersistPayments() && $result->gatewayReference) {
                 Models\PaymentModel::where('gateway_reference', $result->gatewayReference)
                     ->where('gateway_name', $gateway)
                     ->update(['status' => $result->status->value]);
@@ -281,90 +270,6 @@ class Payment
     }
 
     /**
-     * Refund a payment (if supported by the driver).
-     */
-    public function refund(array $data): GatewayResult
-    {
-        $payload = CanonicalRefundPayload::fromArray($data);
-        $gateway = $this->resolveGatewayName();
-        $driver = $this->resolveDriver($gateway);
-
-        if (! $driver instanceof SupportsRefund) {
-            throw new UnsupportedCapabilityException($gateway, 'refund');
-        }
-
-        $credentials = $this->resolveCredentials($gateway);
-
-        $refundId = (string) Str::ulid();
-
-        if (config('payments.persistence.enabled') && config('payments.persistence.refunds')) {
-            Models\PaymentRefund::create([
-                'id' => $refundId,
-                'payment_id' => $payload->paymentId,
-                'amount' => $payload->money->amount,
-                'currency' => $payload->money->currency,
-                'status' => RefundStatus::Pending->value,
-                'reason' => $payload->reason,
-                'request_payload' => $payload->toArray(),
-                'metadata' => $payload->metadata,
-            ]);
-        }
-
-        $this->logger->info('payment.refund', "Refund requested for payment [{$payload->paymentId}] via [{$gateway}]", [
-            'payment' => ['id' => $payload->paymentId],
-            'refund' => ['id' => $refundId, 'amount' => $payload->money->amount],
-            'gateway' => ['name' => $gateway],
-        ]);
-
-        event(new PaymentRefundRequested(
-            paymentId: $payload->paymentId,
-            refundId: $refundId,
-            gateway: $gateway,
-            amount: $payload->money->amount,
-            currency: $payload->money->currency,
-            reason: $payload->reason,
-        ));
-
-        try {
-            $result = $driver->refund($payload, $credentials);
-
-            if (config('payments.persistence.enabled') && config('payments.persistence.refunds')) {
-                Models\PaymentRefund::where('id', $refundId)->update([
-                    'status' => $result->isSuccessful() ? RefundStatus::Completed->value : RefundStatus::Failed->value,
-                    'refund_reference' => $result->gatewayReference,
-                    'response_payload' => $result->gatewayResponse,
-                ]);
-            }
-
-            event(new PaymentRefunded(
-                paymentId: $payload->paymentId,
-                refundId: $refundId,
-                gateway: $gateway,
-                amount: $payload->money->amount,
-                currency: $payload->money->currency,
-                status: $result->status->value,
-                refundReference: $result->gatewayReference,
-            ));
-
-            return $result;
-
-        } catch (\Throwable $e) {
-            if (config('payments.persistence.enabled') && config('payments.persistence.refunds')) {
-                Models\PaymentRefund::where('id', $refundId)->update([
-                    'status' => RefundStatus::Failed->value,
-                ]);
-            }
-
-            $this->logger->error('payment.refund.failed', "Refund failed: {$e->getMessage()}", [
-                'refund' => ['id' => $refundId],
-                'error' => ['message' => $e->getMessage()],
-            ]);
-
-            throw $e;
-        }
-    }
-
-    /**
      * Query payment status (if supported by the driver).
      */
     public function status(array $data): GatewayResult
@@ -373,7 +278,7 @@ class Payment
         $gateway = $this->resolveGatewayName();
         $driver = $this->resolveDriver($gateway);
 
-        if (! $driver instanceof SupportsStatusQuery) {
+        if (!$driver instanceof SupportsStatusQuery) {
             throw new UnsupportedCapabilityException($gateway, 'status');
         }
 
@@ -383,195 +288,17 @@ class Payment
     }
 
     // -------------------------------------------------------
-    // Subscription lifecycle
-    // -------------------------------------------------------
-
-    /**
-     * Create a subscription.
-     */
-    public function subscribe(array $data): GatewayResult
-    {
-        $payload = CanonicalSubscriptionPayload::fromArray($data);
-        $gateway = $this->resolveGatewayName();
-        $driver = $this->resolveDriver($gateway);
-
-        if (! $driver instanceof SupportsRecurring) {
-            throw new UnsupportedCapabilityException($gateway, 'recurring');
-        }
-
-        $credentials = $this->resolveCredentials($gateway);
-        $result = $driver->createSubscription($payload, $credentials);
-
-        // Persist subscription record
-        $subscription = Subscription::create([
-            'gateway_name' => $gateway,
-            'profile' => $this->resolveProfile(),
-            'tenant_id' => $this->context['tenant_id'] ?? null,
-            'customer_id' => $payload->customer?->email,
-            'customer_email' => $payload->customer?->email,
-            'plan_id' => $payload->plan->id,
-            'plan_name' => $payload->plan->name,
-            'status' => $result->isSuccessful() ? SubscriptionStatus::Active : SubscriptionStatus::Incomplete,
-            'gateway_subscription_id' => $result->gatewayReference,
-            'quantity' => $payload->quantity,
-            'amount' => $payload->plan->money->amount,
-            'currency' => $payload->plan->money->currency,
-            'interval' => $payload->plan->interval,
-            'interval_count' => $payload->plan->intervalCount,
-            'trial_ends_at' => $payload->trialDays ? now()->addDays($payload->trialDays) : null,
-            'current_period_start' => now(),
-            'current_period_end' => now()->addMonth(),
-            'metadata' => $payload->metadata,
-            'gateway_data' => $result->gatewayResponse,
-        ]);
-
-        if ($payload->trialDays) {
-            $subscription->update(['status' => SubscriptionStatus::Trialing]);
-        }
-
-        SubscriptionCreated::dispatch(
-            $subscription->id,
-            $gateway,
-            $payload->plan->id,
-            $payload->plan->money->amount,
-            $payload->plan->money->currency,
-            $result->gatewayReference,
-            $payload->customer?->email,
-            $payload->metadata,
-        );
-
-        return $result;
-    }
-
-    /**
-     * Cancel a subscription.
-     */
-    public function cancelSubscription(string $subscriptionId, bool $immediately = false): GatewayResult
-    {
-        $gateway = $this->resolveGatewayName();
-        $driver = $this->resolveDriver($gateway);
-
-        if (! $driver instanceof SupportsRecurring) {
-            throw new UnsupportedCapabilityException($gateway, 'recurring');
-        }
-
-        $subscription = Subscription::findOrFail($subscriptionId);
-        $credentials = $this->resolveCredentials($gateway);
-        $result = $driver->cancelSubscription($subscription->gateway_subscription_id, $credentials);
-
-        if ($result->isSuccessful()) {
-            $subscription->update([
-                'status' => SubscriptionStatus::Cancelled,
-                'cancelled_at' => now(),
-                'ends_at' => $immediately ? now() : $subscription->current_period_end,
-            ]);
-
-            SubscriptionCancelled::dispatch($subscriptionId, $gateway, null, $immediately);
-        }
-
-        return $result;
-    }
-
-    /**
-     * Pause a subscription.
-     */
-    public function pauseSubscription(string $subscriptionId): GatewayResult
-    {
-        $gateway = $this->resolveGatewayName();
-        $driver = $this->resolveDriver($gateway);
-
-        if (! $driver instanceof SupportsRecurring) {
-            throw new UnsupportedCapabilityException($gateway, 'recurring');
-        }
-
-        $subscription = Subscription::findOrFail($subscriptionId);
-        $credentials = $this->resolveCredentials($gateway);
-        $result = $driver->pauseSubscription($subscription->gateway_subscription_id, $credentials);
-
-        if ($result->isSuccessful()) {
-            $subscription->update([
-                'status' => SubscriptionStatus::Paused,
-                'paused_at' => now(),
-            ]);
-
-            SubscriptionPaused::dispatch($subscriptionId, $gateway);
-        }
-
-        return $result;
-    }
-
-    /**
-     * Resume a paused subscription.
-     */
-    public function resumeSubscription(string $subscriptionId): GatewayResult
-    {
-        $gateway = $this->resolveGatewayName();
-        $driver = $this->resolveDriver($gateway);
-
-        if (! $driver instanceof SupportsRecurring) {
-            throw new UnsupportedCapabilityException($gateway, 'recurring');
-        }
-
-        $subscription = Subscription::findOrFail($subscriptionId);
-        $credentials = $this->resolveCredentials($gateway);
-        $result = $driver->resumeSubscription($subscription->gateway_subscription_id, $credentials);
-
-        if ($result->isSuccessful()) {
-            $subscription->update([
-                'status' => SubscriptionStatus::Active,
-                'paused_at' => null,
-            ]);
-
-            SubscriptionResumed::dispatch($subscriptionId, $gateway);
-        }
-
-        return $result;
-    }
-
-    /**
-     * Update a subscription (plan change, quantity, etc).
-     */
-    public function updateSubscription(string $subscriptionId, array $changes): GatewayResult
-    {
-        $gateway = $this->resolveGatewayName();
-        $driver = $this->resolveDriver($gateway);
-
-        if (! $driver instanceof SupportsRecurring) {
-            throw new UnsupportedCapabilityException($gateway, 'recurring');
-        }
-
-        $subscription = Subscription::findOrFail($subscriptionId);
-        $credentials = $this->resolveCredentials($gateway);
-        $result = $driver->updateSubscription($subscription->gateway_subscription_id, $changes, $credentials);
-
-        if ($result->isSuccessful()) {
-            $updateData = [];
-            if (isset($changes['plan_id'])) {
-                $updateData['plan_id'] = $changes['plan_id'];
-            }
-            if (isset($changes['quantity'])) {
-                $updateData['quantity'] = $changes['quantity'];
-            }
-            if (! empty($updateData)) {
-                $subscription->update($updateData);
-            }
-        }
-
-        return $result;
-    }
-
-    // -------------------------------------------------------
     // Internal resolution
     // -------------------------------------------------------
 
     protected function resolveGatewayName(): string
     {
-        return $this->gatewayName ?? config('payments.default', 'dummy');
+        return $this->gatewayName ?? $this->config->defaultGateway;
     }
 
     protected function resolveProfile(): string
     {
-        return $this->profile ?? config('payments.profile', 'test');
+        return $this->profile ?? $this->config->defaultProfile;
     }
 
     protected function resolveDriver(string $gateway): GatewayDriverContract

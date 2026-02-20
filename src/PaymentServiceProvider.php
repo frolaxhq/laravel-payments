@@ -12,13 +12,7 @@ use Frolax\Payment\Credentials\CompositeCredentialsRepository;
 use Frolax\Payment\Credentials\DatabaseCredentialsRepository;
 use Frolax\Payment\Credentials\EnvCredentialsRepository;
 use Frolax\Payment\Logging\PaymentLogger;
-use Frolax\Payment\Services\CurrencyConverter;
-use Frolax\Payment\Services\InvoiceGenerator;
-use Frolax\Payment\Services\RevenueAnalytics;
-use Frolax\Payment\Services\RiskScorer;
-use Frolax\Payment\Services\SandboxSimulator;
 use Frolax\Payment\Services\SchemaValidator;
-use Frolax\Payment\Services\TaxCalculator;
 use Frolax\Payment\Services\WebhookRetryPolicy;
 use Frolax\Payment\Services\WebhookRouter;
 use Spatie\LaravelPackageTools\Package;
@@ -33,6 +27,7 @@ class PaymentServiceProvider extends PackageServiceProvider
             ->hasConfigFile('payments')
             ->hasMigrations([
                 'create_payments_tables',
+                'create_payment_subscription_tables',
             ])
             ->hasRoute('web')
             ->hasCommands([
@@ -45,6 +40,11 @@ class PaymentServiceProvider extends PackageServiceProvider
 
     public function packageRegistered(): void
     {
+        // Register PaymentConfig as singleton
+        $this->app->singleton(PaymentConfig::class, function () {
+            return new PaymentConfig;
+        });
+
         // Register GatewayRegistry as singleton
         $this->app->singleton(GatewayRegistry::class, function () {
             return new GatewayRegistry;
@@ -72,27 +72,38 @@ class PaymentServiceProvider extends PackageServiceProvider
                 registry: $app->make(GatewayRegistry::class),
                 credentialsRepo: $app->make(CredentialsRepositoryContract::class),
                 logger: $app->make(PaymentLoggerContract::class),
+                config: $app->make(PaymentConfig::class),
             );
         });
 
-        // Register extended services
-        $this->app->singleton(InvoiceGenerator::class);
-        $this->app->singleton(TaxCalculator::class);
-        $this->app->singleton(RiskScorer::class);
-        $this->app->singleton(RevenueAnalytics::class);
-        $this->app->singleton(CurrencyConverter::class);
+        // Register SubscriptionManager
+        $this->app->singleton(SubscriptionManager::class, function ($app) {
+            return new SubscriptionManager(
+                registry: $app->make(GatewayRegistry::class),
+                credentialsRepo: $app->make(CredentialsRepositoryContract::class),
+                logger: $app->make(PaymentLoggerContract::class),
+                config: $app->make(PaymentConfig::class),
+            );
+        });
+
+        // Register RefundManager
+        $this->app->singleton(RefundManager::class, function ($app) {
+            return new RefundManager(
+                registry: $app->make(GatewayRegistry::class),
+                credentialsRepo: $app->make(CredentialsRepositoryContract::class),
+                logger: $app->make(PaymentLoggerContract::class),
+                config: $app->make(PaymentConfig::class),
+            );
+        });
+
+        // Register core services
         $this->app->singleton(WebhookRouter::class);
         $this->app->singleton(WebhookRetryPolicy::class);
-        $this->app->singleton(SandboxSimulator::class);
         $this->app->singleton(SchemaValidator::class);
     }
 
     public function packageBooted(): void
     {
-        // Register routes conditionally
-        if (! config('payments.routes.enabled', true)) {
-            // Routes are registered via hasRoute(), but we can't conditionally
-            // remove them easily. The route file itself checks config.
-        }
+        // Routes are registered via hasRoute(); the route file itself checks config.
     }
 }

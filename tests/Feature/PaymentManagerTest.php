@@ -90,12 +90,12 @@ test('Payment manager throws for unsupported refund', function () {
 
     config()->set('payments.gateways.no_refund.test', ['key' => 'k']);
 
-    $payment = app(Payment::class);
-    $payment->gateway('no_refund')->refund([
+    $manager = app(\Frolax\Payment\RefundManager::class);
+    $manager->gateway('no_refund')->refund([
         'payment_id' => 'PAY-001',
         'money' => ['amount' => 50, 'currency' => 'USD'],
     ]);
-})->throws(UnsupportedCapabilityException::class);
+})->throws(\Frolax\Payment\Exceptions\UnsupportedCapabilityException::class);
 
 test('Payment manager supports fluent context and profile', function () {
     $registry = app(GatewayRegistry::class);

@@ -94,8 +94,8 @@ test('subscription lifecycle: create subscription', function () {
     Event::fake();
     setupRecurringGateway();
 
-    $payment = app(Payment::class);
-    $result = $payment->gateway('recurring_mock')->subscribe([
+    $manager = app(\Frolax\Payment\SubscriptionManager::class);
+    $result = $manager->gateway('recurring_mock')->create([
         'plan' => [
             'id' => 'plan_pro',
             'name' => 'Pro Plan',
@@ -125,8 +125,8 @@ test('subscription lifecycle: create with trial', function () {
     Event::fake();
     setupRecurringGateway();
 
-    $payment = app(Payment::class);
-    $payment->gateway('recurring_mock')->subscribe([
+    $manager = app(\Frolax\Payment\SubscriptionManager::class);
+    $manager->gateway('recurring_mock')->create([
         'plan' => [
             'id' => 'plan_trial',
             'name' => 'Trial Plan',
@@ -150,8 +150,8 @@ test('subscription lifecycle: cancel subscription', function () {
     Event::fake();
     setupRecurringGateway();
 
-    $payment = app(Payment::class);
-    $payment->gateway('recurring_mock')->subscribe([
+    $manager = app(\Frolax\Payment\SubscriptionManager::class);
+    $manager->gateway('recurring_mock')->create([
         'plan' => [
             'id' => 'plan_cancel',
             'name' => 'Cancel Plan',
@@ -162,7 +162,7 @@ test('subscription lifecycle: cancel subscription', function () {
 
     $sub = Subscription::latest()->first();
 
-    $result = $payment->gateway('recurring_mock')->cancelSubscription($sub->id);
+    $result = $manager->gateway('recurring_mock')->cancel($sub->id);
     expect($result->isSuccessful())->toBeTrue();
 
     $sub->refresh();
@@ -181,8 +181,8 @@ test('subscription lifecycle: pause and resume', function () {
     Event::fake();
     setupRecurringGateway();
 
-    $payment = app(Payment::class);
-    $payment->gateway('recurring_mock')->subscribe([
+    $manager = app(\Frolax\Payment\SubscriptionManager::class);
+    $manager->gateway('recurring_mock')->create([
         'plan' => [
             'id' => 'plan_pause',
             'name' => 'Pause Plan',
@@ -193,13 +193,13 @@ test('subscription lifecycle: pause and resume', function () {
 
     $sub = Subscription::latest()->first();
 
-    $payment->gateway('recurring_mock')->pauseSubscription($sub->id);
+    $manager->gateway('recurring_mock')->pause($sub->id);
     $sub->refresh();
     expect($sub->status)->toBe(SubscriptionStatus::Paused);
     expect($sub->isPaused())->toBeTrue();
     Event::assertDispatched(SubscriptionPaused::class);
 
-    $payment->gateway('recurring_mock')->resumeSubscription($sub->id);
+    $manager->gateway('recurring_mock')->resume($sub->id);
     $sub->refresh();
     expect($sub->status)->toBe(SubscriptionStatus::Active);
     expect($sub->isActive())->toBeTrue();
@@ -214,8 +214,8 @@ test('subscription lifecycle: update quantity', function () {
     Event::fake();
     setupRecurringGateway();
 
-    $payment = app(Payment::class);
-    $payment->gateway('recurring_mock')->subscribe([
+    $manager = app(\Frolax\Payment\SubscriptionManager::class);
+    $manager->gateway('recurring_mock')->create([
         'plan' => [
             'id' => 'plan_upd',
             'name' => 'Updatable Plan',
@@ -226,7 +226,7 @@ test('subscription lifecycle: update quantity', function () {
 
     $sub = Subscription::latest()->first();
 
-    $result = $payment->gateway('recurring_mock')->updateSubscription($sub->id, [
+    $result = $manager->gateway('recurring_mock')->update($sub->id, [
         'quantity' => 5,
     ]);
 
@@ -271,8 +271,8 @@ test('subscription throws for non-recurring gateway', function () {
 
     config()->set('payments.gateways.basic.test', ['key' => 'k']);
 
-    $payment = app(Payment::class);
-    $payment->gateway('basic')->subscribe([
+    $manager = app(\Frolax\Payment\SubscriptionManager::class);
+    $manager->gateway('basic')->create([
         'plan' => [
             'id' => 'plan_fail',
             'name' => 'Fail',

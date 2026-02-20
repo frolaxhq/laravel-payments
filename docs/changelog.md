@@ -15,56 +15,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - `Subscription`, `SubscriptionItem`, `SubscriptionUsage` models
   - Full lifecycle: create, cancel, pause, resume, update subscriptions
   - 6 subscription events (`SubscriptionCreated`, `Renewed`, `Paused`, `Resumed`, `Cancelled`, `TrialEnding`)
+  - Dedicated `SubscriptionManager`
 
 - **Tokenization**
   - Updated `SupportsTokenization` contract
   - `PaymentMethod` model with token storage, expiry, and default handling
   - `PaymentMethodSaved` and `PaymentMethodDeleted` events
 
-- **Invoicing**
-  - `Invoice`, `InvoiceItem`, `CreditNote`, `TaxRate` models
-  - `InvoiceGenerator` and `TaxCalculator` services
-  - State management (`markPaid()`, `markVoided()`) and scopes
-
-- **Payouts & Splits**
-  - `SupportsPayout` capability interface
-  - `PayoutRecipient`, `Payout`, `PaymentSplit` models
-  - Marketplace-style split payment support
-
-- **Fraud & Risk**
-  - `SupportsThreeDSecure` capability interface
-  - `BlocklistEntry` and `RiskAssessment` models
-  - `RiskScorer` service with configurable factors
-
-- **Analytics**
-  - `RevenueAnalytics` service (revenue summary, MRR/ARR, gateway success rates, conversion funnels)
-
-- **Coupons & Discounts**
-  - `Coupon` and `CouponUsage` models with validation
-  - Percentage and fixed discount types
-  - Per-customer usage limits, minimum spend, expiry
-
 - **Advanced Webhooks**
   - `WebhookRouter` service with wildcard matching
   - `WebhookRetryPolicy` with fixed, linear, and exponential backoff
-
-- **Multi-Currency**
-  - `ExchangeRate` model
-  - `CurrencyConverter` service with bidirectional rate resolution
 
 - **Payment Method Contracts**
   - 5 new capability interfaces: `SupportsWallets`, `SupportsBankTransfer`, `SupportsBuyNowPayLater`, `SupportsQRCode`, `SupportsCOD`
 
 - **Developer Experience**
-  - `PaymentLink` model with auto-slug and expiry
-  - `SandboxSimulator` for testing without a real gateway
   - `SchemaValidator` for pre-flight payload validation
-  - 8 new VitePress documentation pages
+  - VitePress documentation pages
 
 ### Changed
 
-- Service provider now registers 10 new migration stubs and 9 singleton services
-- `Payment` manager extended with subscription lifecycle methods
+- `Payment` god class split into `Payment`, `SubscriptionManager`, and `RefundManager`
+- Modular migrations (core tables separated from subscription tables)
+- `db_logging` now defaults to `false` for better performance
+- Payment configurations are now read via a cached `PaymentConfig` value object
 
 ---
 

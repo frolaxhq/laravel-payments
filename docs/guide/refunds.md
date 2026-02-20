@@ -9,9 +9,11 @@ The gateway driver must implement `SupportsRefund`. If it doesn't, calling `refu
 ## Basic Refund
 
 ```php
-use Frolax\Payment\Facades\Payment;
+use Frolax\Payment\RefundManager;
 
-$result = Payment::gateway('stripe')->refund([
+$manager = app(RefundManager::class);
+
+$result = $manager->gateway('stripe')->refund([
     'payment_id' => 'PAY-001',
     'money' => [
         'amount' => 1000,
@@ -24,7 +26,7 @@ $result = Payment::gateway('stripe')->refund([
 ## Full Refund Payload
 
 ```php
-$result = Payment::gateway('stripe')->refund([
+$result = $manager->gateway('stripe')->refund([
     'payment_id' => 'PAY-001',
     'gateway_reference' => 'ch_1234',          // Gateway's original txn ID
     'money' => ['amount' => 1000, 'currency' => 'USD'],
@@ -80,7 +82,7 @@ Partial refunds are supported if the gateway driver supports them:
 
 ```php
 // Refund only part of the payment
-Payment::gateway('stripe')->refund([
+$manager->gateway('stripe')->refund([
     'payment_id' => 'PAY-001',
     'money' => ['amount' => 500, 'currency' => 'USD'], // Half of original
 ]);

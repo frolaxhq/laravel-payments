@@ -7,7 +7,6 @@ A production-grade, gateway-agnostic payment abstraction for Laravel. One canoni
 
 ## ✨ Features
 
-### Core
 - **One Canonical Payload** — Same shape for every gateway, always
 - **Capability-Based Drivers** — Open/closed: core never branches on gateway name
 - **Auto-Discovery** — Install a gateway addon package, it works immediately
@@ -15,16 +14,7 @@ A production-grade, gateway-agnostic payment abstraction for Laravel. One canoni
 - **Universal Webhooks** — Idempotent, replay-safe webhook/return/cancel endpoints
 - **Structured Logging** — Dot-notation, redacted, to DB + Laravel channels
 - **Full CLI** — Generate gateways, list drivers, sync credentials, replay webhooks
-
-### Extended (v2.0)
 - **Subscriptions** — Full lifecycle management with trial, pause, cancel, resume
-- **Invoicing** — Automated invoice generation with tax calculation and credit notes
-- **Payouts & Splits** — Marketplace-style payouts and split payments
-- **Coupons & Discounts** — Percentage/fixed discounts with usage tracking
-- **Multi-Currency** — Exchange rate management and on-the-fly conversion
-- **Fraud & Risk** — Risk scoring, blocklists, and 3D Secure support
-- **Analytics** — Revenue summaries, MRR/ARR, gateway success rates
-- **Developer Tools** — Payment links, sandbox simulator, schema validator
 - **Payment Methods** — Wallets, bank transfers, BNPL, QR codes, COD
 
 ## Installation
@@ -66,8 +56,14 @@ if ($result->requiresRedirect()) {
 
 ### Create a Subscription
 
+Use the `SubscriptionManager` via the application container:
+
 ```php
-$result = Payment::gateway('stripe')->subscribe([
+use Frolax\Payment\SubscriptionManager;
+
+$manager = app(SubscriptionManager::class);
+
+$result = $manager->gateway('stripe')->create([
     'plan' => [
         'id' => 'plan_pro',
         'name' => 'Pro Plan',
@@ -80,31 +76,23 @@ $result = Payment::gateway('stripe')->subscribe([
 ]);
 
 // Lifecycle
-Payment::gateway('stripe')->cancelSubscription($subId);
-Payment::gateway('stripe')->pauseSubscription($subId);
-Payment::gateway('stripe')->resumeSubscription($subId);
+$manager->gateway('stripe')->cancel($subId);
+$manager->gateway('stripe')->pause($subId);
+$manager->gateway('stripe')->resume($subId);
 ```
 
-### Apply a Coupon
+### Refund a Payment
+
+Use the `RefundManager` via the application container:
 
 ```php
-use Frolax\Payment\Models\Coupon;
+use Frolax\Payment\RefundManager;
 
-$coupon = Coupon::where('code', 'SAVE20')->first();
-
-if ($coupon->isValid(orderAmount: 75.00)) {
-    $discount = $coupon->calculate(75.00); // 15.00
-}
-```
-
-### Convert Currencies
-
-```php
-use Frolax\Payment\Services\CurrencyConverter;
-
-$converter = app(CurrencyConverter::class);
-$result = $converter->convert(100.00, 'USD', 'EUR');
-// ['converted_amount' => 92.50, 'rate' => 0.925, ...]
+app(RefundManager::class)->gateway('stripe')->refund([
+    'payment_id' => '01HQJ...',
+    'money' => ['amount' => 10.00, 'currency' => 'USD'],
+    'reason' => 'Customer requested',
+]);
 ```
 
 ## Runtime Selectors
@@ -138,7 +126,6 @@ Drivers implement `GatewayDriverContract` plus optional capability interfaces:
 | `SupportsStatusQuery` | Payment status queries |
 | `SupportsRecurring` | Subscription lifecycle |
 | `SupportsTokenization` | Saved payment methods |
-| `SupportsPayout` | Marketplace payouts |
 | `SupportsThreeDSecure` | 3D Secure authentication |
 | `SupportsWallets` | Apple Pay, Google Pay |
 | `SupportsBankTransfer` | Wire/bank transfers |
@@ -197,7 +184,7 @@ All tables use ULID primary keys and configurable table names:
 
 **Core:** `payment_gateways`, `payment_gateway_credentials`, `payments`, `payment_attempts`, `payment_webhook_events`, `payment_refunds`, `payment_logs`
 
-**Extended:** `payment_subscriptions`, `payment_subscription_items`, `payment_subscription_usage`, `payment_methods`, `payment_invoices`, `payment_invoice_items`, `payment_credit_notes`, `payment_tax_rates`, `payment_payouts`, `payment_payout_recipients`, `payment_splits`, `payment_blocklist`, `payment_risk_assessments`, `payment_coupons`, `payment_coupon_usages`, `payment_exchange_rates`, `payment_links`
+**Subscriptions:** `payment_subscriptions`, `payment_subscription_items`, `payment_subscription_usage`
 
 ## Documentation
 
@@ -213,7 +200,7 @@ Full documentation available at [docs site](https://frolaxhq.github.io/laravel-p
 composer test
 ```
 
-128 tests, 286 assertions. Tests use Orchestra Testbench with in-memory SQLite.
+74 tests, 177 assertions. Tests use Orchestra Testbench with in-memory SQLite.
 
 ## License
 

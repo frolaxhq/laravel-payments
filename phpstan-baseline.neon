@@ -1,0 +1,133 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Called ''env'' outside of the config directory which returns null when the config is cached, use ''config''\.$#'
+			identifier: larastan.noEnvCallsOutsideOfConfig
+			count: 6
+			path: config/payments.php
+
+		-
+			message: '#^Access to an undefined property Frolax\\Payment\\Models\\PaymentWebhookEvent\|Illuminate\\Database\\Eloquent\\Collection\<int, Frolax\\Payment\\Models\\PaymentWebhookEvent\>\:\:\$event_type\.$#'
+			identifier: property.notFound
+			count: 2
+			path: src/Commands/ReplayWebhookCommand.php
+
+		-
+			message: '#^Access to an undefined property Frolax\\Payment\\Models\\PaymentWebhookEvent\|Illuminate\\Database\\Eloquent\\Collection\<int, Frolax\\Payment\\Models\\PaymentWebhookEvent\>\:\:\$gateway_name\.$#'
+			identifier: property.notFound
+			count: 7
+			path: src/Commands/ReplayWebhookCommand.php
+
+		-
+			message: '#^Access to an undefined property Frolax\\Payment\\Models\\PaymentWebhookEvent\|Illuminate\\Database\\Eloquent\\Collection\<int, Frolax\\Payment\\Models\\PaymentWebhookEvent\>\:\:\$gateway_reference\.$#'
+			identifier: property.notFound
+			count: 3
+			path: src/Commands/ReplayWebhookCommand.php
+
+		-
+			message: '#^Access to an undefined property Frolax\\Payment\\Models\\PaymentWebhookEvent\|Illuminate\\Database\\Eloquent\\Collection\<int, Frolax\\Payment\\Models\\PaymentWebhookEvent\>\:\:\$processed\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Commands/ReplayWebhookCommand.php
+
+		-
+			message: '#^Access to an undefined property Frolax\\Payment\\Models\\PaymentWebhookEvent\|Illuminate\\Database\\Eloquent\\Collection\<int, Frolax\\Payment\\Models\\PaymentWebhookEvent\>\:\:\$signature_valid\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Commands/ReplayWebhookCommand.php
+
+		-
+			message: '#^Access to an undefined property Frolax\\Payment\\Models\\PaymentGatewayCredential\:\:\$credentials\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Credentials/DatabaseCredentialsRepository.php
+
+		-
+			message: '#^Access to an undefined property Frolax\\Payment\\Models\\PaymentGatewayCredential\:\:\$label\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Credentials/DatabaseCredentialsRepository.php
+
+		-
+			message: '#^Access to an undefined property Frolax\\Payment\\Models\\PaymentGatewayCredential\:\:\$tenant_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Credentials/DatabaseCredentialsRepository.php
+
+		-
+			message: '#^Access to an undefined property Frolax\\Payment\\Models\\PaymentMethod\:\:\$customer_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Models/PaymentMethod.php
+
+		-
+			message: '#^Access to an undefined property Frolax\\Payment\\Models\\PaymentMethod\:\:\$expires_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Models/PaymentMethod.php
+
+		-
+			message: '#^Access to an undefined property Frolax\\Payment\\Models\\PaymentMethod\:\:\$gateway_name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Models/PaymentMethod.php
+
+		-
+			message: '#^Access to an undefined property Frolax\\Payment\\Models\\Subscription\:\:\$ends_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Models/Subscription.php
+
+		-
+			message: '#^Access to an undefined property Frolax\\Payment\\Models\\Subscription\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 6
+			path: src/Models/Subscription.php
+
+		-
+			message: '#^Access to an undefined property Frolax\\Payment\\Models\\Subscription\:\:\$trial_ends_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Models/Subscription.php
+
+		-
+			message: '#^Class App\\Models\\Plan not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/Models/Subscription.php
+
+		-
+			message: '#^Parameter \#1 \$related of method Illuminate\\Database\\Eloquent\\Model\:\:belongsTo\(\) expects class\-string\<Illuminate\\Database\\Eloquent\\Model\>, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Models/Subscription.php
+
+		-
+			message: '#^Access to an undefined property Frolax\\Payment\\Models\\PaymentModel\:\:\$gateway_reference\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Payment.php
+
+		-
+			message: '#^Access to an undefined property Frolax\\Payment\\Models\\PaymentModel\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Payment.php
+
+		-
+			message: '#^Access to an undefined property Frolax\\Payment\\Models\\Subscription\:\:\$current_period_end\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/SubscriptionManager.php
+
+		-
+			message: '#^Access to an undefined property Frolax\\Payment\\Models\\Subscription\:\:\$gateway_subscription_id\.$#'
+			identifier: property.notFound
+			count: 4
+			path: src/SubscriptionManager.php
+
+		-
+			message: '#^Parameter \#1 \$subscriptionId of event class Frolax\\Payment\\Events\\SubscriptionCreated constructor expects string in Frolax\\Payment\\Events\\SubscriptionCreated\:\:dispatch\(\), int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/SubscriptionManager.php
