@@ -7,6 +7,7 @@ use Frolax\Payment\Payment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Throwable;
 
 class ReturnController extends Controller
 {
@@ -16,7 +17,7 @@ class ReturnController extends Controller
         Payment $payment,
         PaymentLoggerContract $logger,
     ): RedirectResponse {
-        $logger->info('return.received', "Return callback received for gateway [{$gateway}]", [
+        $logger->info('return.received', "Return callback received for gateway [$gateway]", [
             'gateway' => ['name' => $gateway],
             'http' => ['request' => ['ip' => $request->ip()]],
         ]);
@@ -24,11 +25,11 @@ class ReturnController extends Controller
         try {
             $result = $payment->gateway($gateway)->verifyFromRequest($request);
 
-            $logger->info('return.verified', "Return verification completed for [{$gateway}]", [
+            $logger->info('return.verified', "Return verification completed for [$gateway]", [
                 'gateway' => ['name' => $gateway],
                 'verification' => ['status' => $result->status->value, 'paid' => $result->isSuccessful()],
             ]);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $logger->error('return.failed', "Return verification failed: {$e->getMessage()}", [
                 'gateway' => ['name' => $gateway],
                 'error' => ['message' => $e->getMessage()],

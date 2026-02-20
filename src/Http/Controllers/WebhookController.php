@@ -2,6 +2,7 @@
 
 namespace Frolax\Payment\Http\Controllers;
 
+use Frolax\Payment\Contracts\CredentialsRepositoryContract;
 use Frolax\Payment\Contracts\PaymentLoggerContract;
 use Frolax\Payment\Contracts\SupportsWebhookVerification;
 use Frolax\Payment\Events\WebhookReceived;
@@ -13,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Str;
+use Throwable;
 
 class WebhookController extends Controller
 {
@@ -34,7 +36,7 @@ class WebhookController extends Controller
         );
 
         // Resolve credentials for signature verification
-        $credentialsRepo = app(\Frolax\Payment\Contracts\CredentialsRepositoryContract::class);
+        $credentialsRepo = app(CredentialsRepositoryContract::class);
         $creds = $credentialsRepo->get($gateway, config('payments.profile', 'test'));
 
         $signatureValid = true;
@@ -62,7 +64,8 @@ class WebhookController extends Controller
             // Check if this webhook was already processed (replay safety)
             $existingEvent = null;
             if ($gatewayReference && $eventType) {
-                $existingEvent = PaymentWebhookEvent::where('gateway_name', $gateway)
+                $existingEvent = PaymentWebhookEvent::query()
+                    ->where('gateway_name', $gateway)
                     ->where('gateway_reference', $gatewayReference)
                     ->where('event_type', $eventType)
                     ->where('processed', true)
@@ -81,23 +84,25 @@ class WebhookController extends Controller
             // Find associated payment
             $paymentRecord = null;
             if ($gatewayReference) {
-                $paymentRecord = PaymentModel::where('gateway_reference', $gatewayReference)
+                $paymentRecord = PaymentModel::query()
+                    ->where('gateway_reference', $gatewayReference)
                     ->where('gateway_name', $gateway)
                     ->first();
             }
 
             $webhookEventId = (string) Str::ulid();
-            PaymentWebhookEvent::create([
-                'id' => $webhookEventId,
-                'gateway_name' => $gateway,
-                'payment_id' => $paymentRecord?->id,
-                'event_type' => $eventType,
-                'gateway_reference' => $gatewayReference,
-                'headers' => $request->headers->all(),
-                'payload' => $request->all(),
-                'signature_valid' => $signatureValid,
-                'processed' => false,
-            ]);
+            PaymentWebhookEvent::query()
+                ->create([
+                    'id' => $webhookEventId,
+                    'gateway_name' => $gateway,
+                    'payment_id' => $paymentRecord?->id,
+                    'event_type' => $eventType,
+                    'gateway_reference' => $gatewayReference,
+                    'headers' => $request->headers->all(),
+                    'payload' => $request->all(),
+                    'signature_valid' => $signatureValid,
+                    'processed' => false,
+                ]);
         }
 
         // Dispatch event
@@ -117,11 +122,12 @@ class WebhookController extends Controller
 
                 // Update payment status if we have a result and a payment record
                 if (config('payments.persistence.enabled') && config('payments.persistence.payments') && $gatewayReference) {
-                    PaymentModel::where('gateway_reference', $gatewayReference)
+                    PaymentModel::query()
+                        ->where('gateway_reference', $gatewayReference)
                         ->where('gateway_name', $gateway)
                         ->update(['status' => $result->status->value]);
                 }
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 $logger->error('webhook.processing.failed', "Webhook processing failed: {$e->getMessage()}", [
                     'gateway' => ['name' => $gateway],
                     'error' => ['message' => $e->getMessage()],
@@ -131,10 +137,11 @@ class WebhookController extends Controller
 
         // Mark webhook as processed
         if ($webhookEventId && config('payments.persistence.enabled') && config('payments.persistence.webhooks')) {
-            PaymentWebhookEvent::where('id', $webhookEventId)->update([
-                'processed' => true,
-                'processed_at' => now(),
-            ]);
+            PaymentWebhookEvent::query()
+                ->where('id', $webhookEventId)->update([
+                    'processed' => true,
+                    'processed_at' => now(),
+                ]);
         }
 
         $logger->info('webhook.processed', "Webhook processed for [{$gateway}]", [

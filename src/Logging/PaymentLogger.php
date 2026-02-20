@@ -30,8 +30,7 @@ class PaymentLogger implements PaymentLoggerContract
     {
         $requiredLevel = match ($level) {
             'error' => LogLevel::ErrorsOnly,
-            'warning' => LogLevel::Basic,
-            'info' => LogLevel::Basic,
+            'warning', 'info' => LogLevel::Basic,
             'debug' => LogLevel::Debug,
             default => LogLevel::Verbose,
         };

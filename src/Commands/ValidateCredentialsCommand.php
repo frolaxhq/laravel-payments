@@ -6,9 +6,9 @@ use Frolax\Payment\Contracts\CredentialsRepositoryContract;
 use Frolax\Payment\GatewayRegistry;
 use Illuminate\Console\Command;
 
-class SyncCredentialsCommand extends Command
+class ValidateCredentialsCommand extends Command
 {
-    protected $signature = 'payments:credentials:sync
+    protected $signature = 'payments:credentials:validate
                             {--gateway= : Specific gateway to check}
                             {--profile= : Specific profile (test/live)}
                             {--tenant= : Tenant ID to check}';

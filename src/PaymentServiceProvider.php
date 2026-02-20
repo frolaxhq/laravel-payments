@@ -5,7 +5,7 @@ namespace Frolax\Payment;
 use Frolax\Payment\Commands\ListGatewaysCommand;
 use Frolax\Payment\Commands\MakeGatewayCommand;
 use Frolax\Payment\Commands\ReplayWebhookCommand;
-use Frolax\Payment\Commands\SyncCredentialsCommand;
+use Frolax\Payment\Commands\ValidateCredentialsCommand;
 use Frolax\Payment\Contracts\CredentialsRepositoryContract;
 use Frolax\Payment\Contracts\PaymentLoggerContract;
 use Frolax\Payment\Credentials\CompositeCredentialsRepository;
@@ -25,15 +25,12 @@ class PaymentServiceProvider extends PackageServiceProvider
         $package
             ->name('laravel-payments')
             ->hasConfigFile('payments')
-            ->hasMigrations([
-                'create_payments_tables',
-                'create_payment_subscription_tables',
-            ])
+            ->hasMigrations(['create_payments_tables'])
             ->hasRoute('web')
             ->hasCommands([
                 MakeGatewayCommand::class,
                 ListGatewaysCommand::class,
-                SyncCredentialsCommand::class,
+                ValidateCredentialsCommand::class,
                 ReplayWebhookCommand::class,
             ]);
     }
@@ -100,10 +97,5 @@ class PaymentServiceProvider extends PackageServiceProvider
         $this->app->singleton(WebhookRouter::class);
         $this->app->singleton(WebhookRetryPolicy::class);
         $this->app->singleton(SchemaValidator::class);
-    }
-
-    public function packageBooted(): void
-    {
-        // Routes are registered via hasRoute(); the route file itself checks config.
     }
 }

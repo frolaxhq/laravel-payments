@@ -17,7 +17,7 @@ class CancelController extends Controller
         string $gateway,
         PaymentLoggerContract $logger,
     ): RedirectResponse {
-        $logger->info('cancel.received', "Cancel callback received for gateway [{$gateway}]", [
+        $logger->info('cancel.received', "Cancel callback received for gateway [$gateway]", [
             'gateway' => ['name' => $gateway],
             'http' => ['request' => ['ip' => $request->ip()]],
         ]);
@@ -25,7 +25,8 @@ class CancelController extends Controller
         // Try to find and update the payment record
         $orderId = $request->query('order_id');
         if ($orderId && config('payments.persistence.enabled') && config('payments.persistence.payments')) {
-            $paymentRecord = PaymentModel::where('order_id', $orderId)
+            $paymentRecord = PaymentModel::query()
+                ->where('order_id', $orderId)
                 ->where('gateway_name', $gateway)
                 ->where('status', PaymentStatus::Pending)
                 ->first();

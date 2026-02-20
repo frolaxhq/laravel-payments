@@ -4,11 +4,9 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
-        // 1. Gateways
         Schema::create(config('payments.tables.gateways', 'payment_gateways'), function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->string('name')->unique();
@@ -18,19 +16,24 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // 2. Gateway Credentials
         Schema::create(config('payments.tables.credentials', 'payment_gateway_credentials'), function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->foreignUlid('gateway_id')->constrained(config('payments.tables.gateways', 'payment_gateways'))->cascadeOnDelete();
+            $table->string('gateway_name');
             $table->string('profile')->default('default');
-            $table->json('credentials');
+            $table->string('tenant_id')->nullable();
+            $table->string('label')->nullable();
+            $table->text('credentials');
             $table->boolean('is_active')->default(true);
+            $table->unsignedInteger('priority')->default(0);
+            $table->timestamp('effective_from')->nullable();
+            $table->timestamp('effective_to')->nullable();
             $table->timestamps();
 
-            $table->unique(['gateway_id', 'profile']);
+            $table->unique(['gateway_name', 'profile', 'tenant_id'], 'pgc_gateway_profile_tenant_unique');
+            $table->index('gateway_name');
+            $table->index('tenant_id');
         });
 
-        // 3. Payment Methods
         Schema::create(config('payments.tables.methods', 'payment_methods'), function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->string('gateway_name');
@@ -48,7 +51,6 @@ return new class extends Migration
             $table->index('gateway_method_id');
         });
 
-        // 4. Payments
         Schema::create(config('payments.tables.payments', 'payments'), function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->string('order_id');
@@ -77,7 +79,6 @@ return new class extends Migration
             $table->index('customer_email');
         });
 
-        // 5. Payment Attempts
         Schema::create(config('payments.tables.attempts', 'payment_attempts'), function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->ulid('payment_id');
@@ -99,7 +100,6 @@ return new class extends Migration
             $table->index('status');
         });
 
-        // 6. Payment Logs
         Schema::create(config('payments.tables.logs', 'payment_logs'), function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->ulid('payment_id')->nullable();
@@ -119,7 +119,6 @@ return new class extends Migration
             $table->index('level');
         });
 
-        // 7. Refunds
         Schema::create(config('payments.tables.refunds', 'payment_refunds'), function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->ulid('payment_id');
@@ -141,7 +140,6 @@ return new class extends Migration
             $table->index('payment_id');
         });
 
-        // 8. Webhooks
         Schema::create(config('payments.tables.webhooks', 'payment_webhook_events'), function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->string('gateway_name');
@@ -166,10 +164,79 @@ return new class extends Migration
             $table->index('processed');
             $table->index(['gateway_name', 'gateway_reference', 'event_type'], 'webhook_idempotency');
         });
+
+        Schema::create(config('payments.tables.subscriptions', 'payment_subscriptions'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->string('gateway_name');
+            $table->string('profile')->default('test');
+            $table->string('tenant_id')->nullable();
+            $table->string('customer_id')->nullable();
+            $table->string('customer_email')->nullable();
+            $table->string('plan_id');
+            $table->string('plan_name')->nullable();
+            $table->string('status')->default('incomplete');
+            $table->string('gateway_subscription_id')->nullable();
+            $table->unsignedInteger('quantity')->default(1);
+            $table->decimal('amount', 16, 2);
+            $table->string('currency', 3);
+            $table->string('interval')->default('monthly');
+            $table->unsignedInteger('interval_count')->default(1);
+            $table->timestamp('trial_ends_at')->nullable();
+            $table->timestamp('current_period_start')->nullable();
+            $table->timestamp('current_period_end')->nullable();
+            $table->timestamp('paused_at')->nullable();
+            $table->timestamp('cancelled_at')->nullable();
+            $table->timestamp('ends_at')->nullable();
+            $table->json('metadata')->nullable();
+            $table->json('gateway_data')->nullable();
+            $table->timestamps();
+
+            $table->index('gateway_name');
+            $table->index('status');
+            $table->index('tenant_id');
+            $table->index('customer_id');
+            $table->index('customer_email');
+            $table->index('plan_id');
+            $table->index('gateway_subscription_id');
+            $table->index(['gateway_name', 'status']);
+            $table->index(['tenant_id', 'status']);
+            $table->index('current_period_end');
+        });
+
+        Schema::create(config('payments.tables.subscription_items', 'payment_subscription_items'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->foreignUlid('subscription_id')->constrained(config('payments.tables.subscriptions', 'payment_subscriptions'))->cascadeOnDelete();
+            $table->string('product_id');
+            $table->string('product_name')->nullable();
+            $table->string('gateway_item_id')->nullable();
+            $table->unsignedInteger('quantity')->default(1);
+            $table->decimal('unit_price', 16, 2)->nullable();
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+
+            $table->index('product_id');
+        });
+
+        Schema::create(config('payments.tables.subscription_usage', 'payment_subscription_usage'), function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->foreignUlid('subscription_id')->constrained(config('payments.tables.subscriptions', 'payment_subscriptions'))->cascadeOnDelete();
+            $table->foreignUlid('subscription_item_id')->nullable()->constrained(config('payments.tables.subscription_items', 'payment_subscription_items'))->nullOnDelete();
+            $table->string('feature');
+            $table->decimal('quantity', 16, 4)->default(1);
+            $table->json('metadata')->nullable();
+            $table->timestamp('recorded_at');
+            $table->timestamps();
+
+            $table->index(['subscription_id', 'feature']);
+            $table->index('recorded_at');
+        });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists(config('payments.tables.subscription_usage', 'payment_subscription_usage'));
+        Schema::dropIfExists(config('payments.tables.subscription_items', 'payment_subscription_items'));
+        Schema::dropIfExists(config('payments.tables.subscriptions', 'payment_subscriptions'));
         Schema::dropIfExists(config('payments.tables.webhooks', 'payment_webhook_events'));
         Schema::dropIfExists(config('payments.tables.refunds', 'payment_refunds'));
         Schema::dropIfExists(config('payments.tables.logs', 'payment_logs'));

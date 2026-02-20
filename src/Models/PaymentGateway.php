@@ -21,8 +21,8 @@ class PaymentGateway extends Model
     protected function casts(): array
     {
         return [
-            'supports' => 'array',
             'is_active' => 'boolean',
+            'metadata' => 'array',
         ];
     }
 

@@ -4,6 +4,7 @@ namespace Frolax\Payment\Discovery;
 
 use Frolax\Payment\Contracts\GatewayAddonContract;
 use Frolax\Payment\GatewayRegistry;
+use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -24,6 +25,9 @@ abstract class GatewayAddonServiceProvider extends ServiceProvider
         // Addon packages can override this to register bindings
     }
 
+    /**
+     * @throws BindingResolutionException
+     */
     public function boot(): void
     {
         $this->app->afterResolving(GatewayRegistry::class, function (GatewayRegistry $registry) {
