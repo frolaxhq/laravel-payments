@@ -35,8 +35,7 @@ class Payment
         protected CredentialsRepositoryContract $credentialsRepo,
         protected PaymentLoggerContract $logger,
         protected PaymentConfig $config,
-    ) {
-    }
+    ) {}
 
     /**
      * Select a gateway by name.
@@ -278,7 +277,7 @@ class Payment
         $gateway = $this->resolveGatewayName();
         $driver = $this->resolveDriver($gateway);
 
-        if (!$driver instanceof SupportsStatusQuery) {
+        if (! $driver instanceof SupportsStatusQuery) {
             throw new UnsupportedCapabilityException($gateway, 'status');
         }
 

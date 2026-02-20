@@ -7,7 +7,6 @@ use Frolax\Payment\DTOs\GatewayResult;
 use Frolax\Payment\Enums\PaymentStatus;
 use Frolax\Payment\Exceptions\GatewayNotFoundException;
 use Frolax\Payment\Exceptions\MissingCredentialsException;
-use Frolax\Payment\Exceptions\UnsupportedCapabilityException;
 use Frolax\Payment\GatewayRegistry;
 use Frolax\Payment\Payment;
 use Illuminate\Http\Request;
