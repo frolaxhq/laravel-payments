@@ -14,7 +14,6 @@ use Frolax\Payment\Events\SubscriptionPaused;
 use Frolax\Payment\Events\SubscriptionResumed;
 use Frolax\Payment\GatewayRegistry;
 use Frolax\Payment\Models\Subscription;
-use Frolax\Payment\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 
