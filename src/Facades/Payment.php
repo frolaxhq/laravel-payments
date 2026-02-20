@@ -3,8 +3,8 @@
 namespace Frolax\Payment\Facades;
 
 use Frolax\Payment\DTOs\GatewayResult;
-use Illuminate\Support\Facades\Facade;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static \Frolax\Payment\Payment gateway(?string $name = null)
