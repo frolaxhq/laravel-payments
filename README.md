@@ -126,13 +126,7 @@ Drivers implement `GatewayDriverContract` plus optional capability interfaces:
 | `SupportsStatusQuery` | Payment status queries |
 | `SupportsRecurring` | Subscription lifecycle |
 | `SupportsTokenization` | Saved payment methods |
-| `SupportsThreeDSecure` | 3D Secure authentication |
-| `SupportsWallets` | Apple Pay, Google Pay |
-| `SupportsBankTransfer` | Wire/bank transfers |
-| `SupportsBuyNowPayLater` | Klarna, Afterpay, Tabby |
-| `SupportsQRCode` | QR-based payments |
 | `SupportsCOD` | Cash on delivery |
-| `SupportsInstallments` | EMI/installment plans |
 
 ## Creating a Gateway
 

@@ -30,7 +30,9 @@ interface GatewayAddonContract
     /**
      * List of capability interface class names this gateway supports.
      *
-     * @return string[]
+     * Example: [SupportsRecurring::class, SupportsRefund::class]
+     *
+     * @return array<class-string>
      */
     public function capabilities(): array;
 

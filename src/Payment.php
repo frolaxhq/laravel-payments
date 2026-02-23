@@ -2,33 +2,27 @@
 
 namespace Frolax\Payment;
 
+use Frolax\Payment\Concerns\HasGatewayContext;
 use Frolax\Payment\Contracts\CredentialsRepositoryContract;
-use Frolax\Payment\Contracts\GatewayDriverContract;
 use Frolax\Payment\Contracts\PaymentLoggerContract;
 use Frolax\Payment\Contracts\SupportsStatusQuery;
 use Frolax\Payment\DTOs\CanonicalPayload;
 use Frolax\Payment\DTOs\CanonicalStatusPayload;
-use Frolax\Payment\DTOs\CredentialsDTO;
 use Frolax\Payment\DTOs\GatewayResult;
-use Frolax\Payment\Enums\AttemptStatus;
-use Frolax\Payment\Enums\PaymentStatus;
-use Frolax\Payment\Events\PaymentCreated;
-use Frolax\Payment\Events\PaymentFailed;
-use Frolax\Payment\Events\PaymentVerified;
-use Frolax\Payment\Exceptions\MissingCredentialsException;
 use Frolax\Payment\Exceptions\UnsupportedCapabilityException;
+use Frolax\Payment\Pipeline\PaymentContext;
+use Frolax\Payment\Pipeline\Steps\CheckIdempotency;
+use Frolax\Payment\Pipeline\Steps\DispatchPaymentEvent;
+use Frolax\Payment\Pipeline\Steps\ExecuteGatewayCall;
+use Frolax\Payment\Pipeline\Steps\PersistAttempt;
+use Frolax\Payment\Pipeline\Steps\PersistPaymentRecord;
+use Frolax\Payment\Pipeline\Steps\UpdatePaymentStatus;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Illuminate\Pipeline\Pipeline;
 
 class Payment
 {
-    protected ?string $gatewayName = null;
-
-    protected ?string $profile = null;
-
-    protected array $context = [];
-
-    protected ?CredentialsDTO $oneOffCredentials = null;
+    use HasGatewayContext;
 
     public function __construct(
         protected GatewayRegistry $registry,
@@ -37,191 +31,75 @@ class Payment
         protected PaymentConfig $config,
     ) {}
 
-    /**
-     * Select a gateway by name.
-     */
-    public function gateway(?string $name = null): static
-    {
-        $clone = clone $this;
-        $clone->gatewayName = $name ?? $this->config->defaultGateway;
+    // -------------------------------------------------------
+    // Dependency accessors (required by HasGatewayContext)
+    // -------------------------------------------------------
 
-        return $clone;
+    protected function registry(): GatewayRegistry
+    {
+        return $this->registry;
     }
 
-    /**
-     * Set runtime context (e.g. tenant_id).
-     */
-    public function usingContext(array $context): static
+    protected function credentialsRepo(): CredentialsRepositoryContract
     {
-        $clone = clone $this;
-        $clone->context = array_merge($clone->context, $context);
-
-        return $clone;
+        return $this->credentialsRepo;
     }
 
-    /**
-     * Select a credential profile (test/live).
-     */
-    public function withProfile(string $profile): static
+    protected function config(): PaymentConfig
     {
-        $clone = clone $this;
-        $clone->profile = $profile;
-
-        return $clone;
+        return $this->config;
     }
 
-    /**
-     * Use one-off credentials (not resolved from repo).
-     */
-    public function usingCredentials(array $credentials): static
-    {
-        $clone = clone $this;
-        $clone->oneOffCredentials = new CredentialsDTO(
-            gateway: $clone->resolveGatewayName(),
-            profile: $clone->resolveProfile(),
-            credentials: $credentials,
-            tenantId: $clone->context['tenant_id'] ?? null,
-        );
-
-        return $clone;
-    }
+    // -------------------------------------------------------
+    // One-off Payments
+    // -------------------------------------------------------
 
     /**
-     * Create a payment.
+     * Create a one-off payment via a composable pipeline.
      */
-    public function create(array $data): GatewayResult
+    public function charge(array $data): GatewayResult
     {
         $payload = CanonicalPayload::fromArray($data);
         $gateway = $this->resolveGatewayName();
         $driver = $this->resolveDriver($gateway);
         $credentials = $this->resolveCredentials($gateway);
 
-        $this->logger->info('payment.create', "Creating payment for order [{$payload->order->id}] via [{$gateway}]", [
-            'gateway' => ['name' => $gateway],
-            'payment' => ['order' => ['id' => $payload->order->id], 'money' => $payload->money->toArray()],
-            'idempotency_key' => $payload->idempotencyKey,
-        ]);
+        $context = new PaymentContext(
+            gateway: $gateway,
+            profile: $this->resolveProfile(),
+            driver: $driver,
+            payload: $payload,
+            credentials: $credentials,
+            tenantId: $this->context['tenant_id'] ?? null,
+        );
 
-        // Check idempotency: if a payment with this key already exists, return it
-        if ($this->config->shouldPersistPayments()) {
-            $existing = Models\PaymentModel::where('idempotency_key', $payload->idempotencyKey)->first();
-            if ($existing && $existing->status !== PaymentStatus::Pending->value) {
-                $this->logger->info('payment.create.idempotent', "Idempotent hit for key [{$payload->idempotencyKey}]", [
-                    'payment' => ['id' => $existing->id],
-                ]);
+        /** @var PaymentContext $result */
+        $result = app(Pipeline::class)
+            ->send($context)
+            ->through([
+                CheckIdempotency::class,
+                PersistPaymentRecord::class,
+                ExecuteGatewayCall::class,
+                PersistAttempt::class,
+                UpdatePaymentStatus::class,
+                DispatchPaymentEvent::class,
+            ])
+            ->thenReturn();
 
-                return new GatewayResult(
-                    status: PaymentStatus::from($existing->status),
-                    gatewayReference: $existing->gateway_reference,
-                );
-            }
-        }
-
-        // Persist payment record
-        $paymentId = (string) Str::ulid();
-
-        if ($this->config->shouldPersistPayments()) {
-            Models\PaymentModel::create([
-                'id' => $paymentId,
-                'order_id' => $payload->order->id,
-                'gateway_name' => $gateway,
-                'profile' => $this->resolveProfile(),
-                'tenant_id' => $this->context['tenant_id'] ?? null,
-                'status' => PaymentStatus::Pending->value,
-                'amount' => $payload->money->amount,
-                'currency' => $payload->money->currency,
-                'idempotency_key' => $payload->idempotencyKey,
-                'customer_email' => $payload->customer?->email,
-                'customer_phone' => $payload->customer?->phone,
-                'canonical_payload' => $payload->toArray(),
-                'metadata' => $payload->metadata,
-            ]);
-        }
-
-        // Record attempt
-        $attemptNo = 1;
-        $startTime = microtime(true);
-
-        try {
-            $result = $driver->create($payload, $credentials);
-            $elapsed = round((microtime(true) - $startTime) * 1000, 2);
-
-            // Persist attempt
-            if ($this->config->shouldPersistAttempts()) {
-                Models\PaymentAttempt::create([
-                    'id' => (string) Str::ulid(),
-                    'payment_id' => $paymentId,
-                    'attempt_no' => $attemptNo,
-                    'status' => $result->isSuccessful() ? AttemptStatus::Succeeded->value : AttemptStatus::Sent->value,
-                    'gateway_reference' => $result->gatewayReference,
-                    'request_payload' => $payload->toArray(),
-                    'response_payload' => $result->gatewayResponse,
-                    'duration_ms' => $elapsed,
-                ]);
-            }
-
-            // Update payment record
-            if ($this->config->shouldPersistPayments()) {
-                Models\PaymentModel::where('id', $paymentId)->update([
-                    'status' => $result->status->value,
-                    'gateway_reference' => $result->gatewayReference,
-                ]);
-            }
-
-            $this->logger->info('payment.created', "Payment [{$paymentId}] created successfully via [{$gateway}]", [
-                'payment' => ['id' => $paymentId],
-                'gateway' => ['name' => $gateway, 'reference' => $result->gatewayReference],
-                'result' => ['status' => $result->status->value],
-                'timing' => ['duration_ms' => $elapsed],
-            ]);
-
-            event(new PaymentCreated(
-                paymentId: $paymentId,
-                gateway: $gateway,
-                orderId: $payload->order->id,
-                amount: $payload->money->amount,
-                currency: $payload->money->currency,
-                redirectUrl: $result->redirectUrl,
-                metadata: $payload->metadata,
-            ));
-
-            return $result;
-
-        } catch (\Throwable $e) {
-            $elapsed = round((microtime(true) - $startTime) * 1000, 2);
-
-            if ($this->config->shouldPersistAttempts()) {
-                Models\PaymentAttempt::create([
-                    'id' => (string) Str::ulid(),
-                    'payment_id' => $paymentId,
-                    'attempt_no' => $attemptNo,
-                    'status' => AttemptStatus::Error->value,
-                    'errors' => ['message' => $e->getMessage(), 'code' => $e->getCode()],
-                    'duration_ms' => $elapsed,
-                ]);
-            }
-
-            if ($this->config->shouldPersistPayments()) {
-                Models\PaymentModel::where('id', $paymentId)->update([
-                    'status' => PaymentStatus::Failed->value,
-                ]);
-            }
-
-            $this->logger->error('payment.create.failed', "Payment creation failed: {$e->getMessage()}", [
-                'payment' => ['id' => $paymentId],
-                'gateway' => ['name' => $gateway],
-                'error' => ['message' => $e->getMessage()],
-            ]);
-
-            event(new PaymentFailed(
-                paymentId: $paymentId,
-                gateway: $gateway,
-                errorMessage: $e->getMessage(),
-            ));
-
-            throw $e;
-        }
+        return $result->result;
     }
+
+    /**
+     * Alias for charge() — backward compatibility.
+     */
+    public function create(array $data): GatewayResult
+    {
+        return $this->charge($data);
+    }
+
+    // -------------------------------------------------------
+    // Verification & Status
+    // -------------------------------------------------------
 
     /**
      * Verify a payment from a gateway callback/return request.
@@ -251,7 +129,7 @@ class Payment
                     ->update(['status' => $result->status->value]);
             }
 
-            event(new PaymentVerified(
+            event(new Events\PaymentVerified(
                 paymentId: $result->gatewayReference ?? '',
                 gateway: $gateway,
                 status: $result->status->value,
@@ -287,37 +165,115 @@ class Payment
     }
 
     // -------------------------------------------------------
-    // Internal resolution
+    // Subscription delegation
     // -------------------------------------------------------
 
-    protected function resolveGatewayName(): string
+    /**
+     * Create a subscription via the gateway.
+     */
+    public function subscribe(array $data): GatewayResult
     {
-        return $this->gatewayName ?? $this->config->defaultGateway;
+        return $this->forwardToSubscriptionManager()->create($data);
     }
 
-    protected function resolveProfile(): string
+    /**
+     * Cancel a subscription.
+     */
+    public function cancelSubscription(string $subscriptionId, bool $immediately = false): GatewayResult
     {
-        return $this->profile ?? $this->config->defaultProfile;
+        return $this->forwardToSubscriptionManager()->cancel($subscriptionId, $immediately);
     }
 
-    protected function resolveDriver(string $gateway): GatewayDriverContract
+    /**
+     * Pause a subscription.
+     */
+    public function pauseSubscription(string $subscriptionId): GatewayResult
     {
-        return $this->registry->resolve($gateway);
+        return $this->forwardToSubscriptionManager()->pause($subscriptionId);
     }
 
-    protected function resolveCredentials(string $gateway): CredentialsDTO
+    /**
+     * Resume a paused subscription.
+     */
+    public function resumeSubscription(string $subscriptionId): GatewayResult
     {
+        return $this->forwardToSubscriptionManager()->resume($subscriptionId);
+    }
+
+    /**
+     * Update a subscription (plan change, quantity, etc).
+     */
+    public function updateSubscription(string $subscriptionId, array $changes): GatewayResult
+    {
+        return $this->forwardToSubscriptionManager()->update($subscriptionId, $changes);
+    }
+
+    // -------------------------------------------------------
+    // Refund delegation
+    // -------------------------------------------------------
+
+    /**
+     * Refund a payment.
+     */
+    public function refund(array $data): GatewayResult
+    {
+        return $this->forwardToRefundManager()->refund($data);
+    }
+
+    // -------------------------------------------------------
+    // Static discovery helpers
+    // -------------------------------------------------------
+
+    /**
+     * Get all registered gateways.
+     */
+    public static function gateways(): array
+    {
+        return app(GatewayRegistry::class)->all();
+    }
+
+    /**
+     * Get all gateways that support a specific capability.
+     *
+     * @param  class-string  $capability
+     */
+    public static function gatewaysThatSupport(string $capability): array
+    {
+        return app(GatewayRegistry::class)->supporting($capability);
+    }
+
+    // -------------------------------------------------------
+    // Internal helpers
+    // -------------------------------------------------------
+
+    protected function subscriptionManager(): SubscriptionManager
+    {
+        return app(SubscriptionManager::class);
+    }
+
+    protected function forwardToSubscriptionManager(): SubscriptionManager
+    {
+        $manager = $this->subscriptionManager()->gateway($this->resolveGatewayName())
+            ->withProfile($this->resolveProfile())
+            ->usingContext($this->context);
+
         if ($this->oneOffCredentials) {
-            return $this->oneOffCredentials;
+            $manager = $manager->usingCredentials($this->oneOffCredentials->credentials);
         }
 
-        $profile = $this->resolveProfile();
-        $credentials = $this->credentialsRepo->get($gateway, $profile, $this->context);
+        return $manager;
+    }
 
-        if ($credentials === null) {
-            throw new MissingCredentialsException($gateway, $profile, $this->context['tenant_id'] ?? null);
+    protected function forwardToRefundManager(): RefundManager
+    {
+        $manager = app(RefundManager::class)->gateway($this->resolveGatewayName())
+            ->withProfile($this->resolveProfile())
+            ->usingContext($this->context);
+
+        if ($this->oneOffCredentials) {
+            $manager = $manager->usingCredentials($this->oneOffCredentials->credentials);
         }
 
-        return $credentials;
+        return $manager;
     }
 }

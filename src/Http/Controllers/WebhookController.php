@@ -9,7 +9,7 @@ use Frolax\Payment\Events\WebhookReceived;
 use Frolax\Payment\GatewayRegistry;
 use Frolax\Payment\Models\PaymentModel;
 use Frolax\Payment\Models\PaymentWebhookEvent;
-use Frolax\Payment\Payment;
+use Frolax\Payment\PaymentConfig;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -22,7 +22,7 @@ class WebhookController extends Controller
         Request $request,
         string $gateway,
         GatewayRegistry $registry,
-        Payment $payment,
+        PaymentConfig $config,
         PaymentLoggerContract $logger,
     ): Response {
         $logger->info('webhook.received', "Webhook received for gateway [{$gateway}]", [
@@ -31,13 +31,10 @@ class WebhookController extends Controller
         ]);
 
         $driver = $registry->resolve($gateway);
-        $credentials = $payment->gateway($gateway)->withProfile(
-            config('payments.profile', 'test')
-        );
 
         // Resolve credentials for signature verification
         $credentialsRepo = app(CredentialsRepositoryContract::class);
-        $creds = $credentialsRepo->get($gateway, config('payments.profile', 'test'));
+        $creds = $credentialsRepo->get($gateway, $config->defaultProfile);
 
         $signatureValid = true;
         $eventType = null;
@@ -60,7 +57,7 @@ class WebhookController extends Controller
 
         // Store webhook event (idempotency check)
         $webhookEventId = null;
-        if (config('payments.persistence.enabled') && config('payments.persistence.webhooks')) {
+        if ($config->shouldPersistWebhooks()) {
             // Check if this webhook was already processed (replay safety)
             $existingEvent = null;
             if ($gatewayReference && $eventType) {
@@ -121,7 +118,7 @@ class WebhookController extends Controller
                 $result = $driver->verify($request, $creds);
 
                 // Update payment status if we have a result and a payment record
-                if (config('payments.persistence.enabled') && config('payments.persistence.payments') && $gatewayReference) {
+                if ($config->shouldPersistPayments() && $gatewayReference) {
                     PaymentModel::query()
                         ->where('gateway_reference', $gatewayReference)
                         ->where('gateway_name', $gateway)
@@ -136,7 +133,7 @@ class WebhookController extends Controller
         }
 
         // Mark webhook as processed
-        if ($webhookEventId && config('payments.persistence.enabled') && config('payments.persistence.webhooks')) {
+        if ($webhookEventId && $config->shouldPersistWebhooks()) {
             PaymentWebhookEvent::query()
                 ->where('id', $webhookEventId)->update([
                     'processed' => true,

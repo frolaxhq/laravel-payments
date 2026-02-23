@@ -2,7 +2,6 @@
 
 namespace Frolax\Payment\Models;
 
-use App\Models\Plan;
 use Frolax\Payment\Enums\SubscriptionStatus;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -48,9 +47,14 @@ class Subscription extends Model
         return $this->hasMany(SubscriptionUsage::class);
     }
 
+    /**
+     * The plan relationship — model class is configurable.
+     */
     public function plan(): BelongsTo
     {
-        return $this->belongsTo(Plan::class);
+        $planModel = config('payments.models.plan', 'App\\Models\\Plan');
+
+        return $this->belongsTo($planModel);
     }
 
     public function isActive(): bool

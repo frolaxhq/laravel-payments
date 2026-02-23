@@ -6,6 +6,7 @@ use Frolax\Payment\Contracts\PaymentLoggerContract;
 use Frolax\Payment\DTOs\CanonicalPayload;
 use Frolax\Payment\Enums\LogLevel;
 use Frolax\Payment\Models\PaymentLog;
+use Frolax\Payment\PaymentConfig;
 use Illuminate\Support\Facades\Log;
 
 class PaymentLogger implements PaymentLoggerContract
@@ -18,8 +19,9 @@ class PaymentLogger implements PaymentLoggerContract
 
     protected bool $dbLogging;
 
-    public function __construct()
-    {
+    public function __construct(
+        protected ?PaymentConfig $paymentConfig = null,
+    ) {
         $this->configuredLevel = LogLevel::from(config('payments.logging.level', 'basic'));
         $this->redactedKeys = config('payments.logging.redacted_keys', []);
         $this->channel = config('payments.logging.channel', config('logging.default'));
@@ -50,7 +52,7 @@ class PaymentLogger implements PaymentLoggerContract
         Log::channel($this->channel)->$level("[Payment] [{$category}] {$message}", $redactedFlat);
 
         // Log to DB if enabled
-        if ($this->dbLogging && config('payments.persistence.enabled') && config('payments.persistence.logs')) {
+        if ($this->dbLogging && ($this->paymentConfig?->shouldPersistLogs() ?? (config('payments.persistence.enabled') && config('payments.persistence.logs')))) {
             try {
                 PaymentLog::create([
                     'level' => $level,

@@ -2,28 +2,21 @@
 
 namespace Frolax\Payment;
 
+use Frolax\Payment\Concerns\HasGatewayContext;
 use Frolax\Payment\Contracts\CredentialsRepositoryContract;
 use Frolax\Payment\Contracts\PaymentLoggerContract;
 use Frolax\Payment\Contracts\SupportsRefund;
 use Frolax\Payment\DTOs\CanonicalRefundPayload;
-use Frolax\Payment\DTOs\CredentialsDTO;
 use Frolax\Payment\DTOs\GatewayResult;
 use Frolax\Payment\Enums\RefundStatus;
 use Frolax\Payment\Events\PaymentRefunded;
 use Frolax\Payment\Events\PaymentRefundRequested;
-use Frolax\Payment\Exceptions\MissingCredentialsException;
 use Frolax\Payment\Exceptions\UnsupportedCapabilityException;
 use Illuminate\Support\Str;
 
 class RefundManager
 {
-    protected ?string $gatewayName = null;
-
-    protected ?string $profile = null;
-
-    protected array $context = [];
-
-    protected ?CredentialsDTO $oneOffCredentials = null;
+    use HasGatewayContext;
 
     public function __construct(
         protected GatewayRegistry $registry,
@@ -32,54 +25,24 @@ class RefundManager
         protected PaymentConfig $config,
     ) {}
 
-    /**
-     * Select a gateway by name.
-     */
-    public function gateway(?string $name = null): static
+    protected function registry(): GatewayRegistry
     {
-        $clone = clone $this;
-        $clone->gatewayName = $name ?? $this->config->defaultGateway;
-
-        return $clone;
+        return $this->registry;
     }
 
-    /**
-     * Set runtime context (e.g. tenant_id).
-     */
-    public function usingContext(array $context): static
+    protected function credentialsRepo(): CredentialsRepositoryContract
     {
-        $clone = clone $this;
-        $clone->context = array_merge($clone->context, $context);
-
-        return $clone;
+        return $this->credentialsRepo;
     }
 
-    /**
-     * Select a credential profile (test/live).
-     */
-    public function withProfile(string $profile): static
+    protected function config(): PaymentConfig
     {
-        $clone = clone $this;
-        $clone->profile = $profile;
-
-        return $clone;
+        return $this->config;
     }
 
-    /**
-     * Use one-off credentials (not resolved from repo).
-     */
-    public function usingCredentials(array $credentials): static
-    {
-        $clone = clone $this;
-        $clone->oneOffCredentials = new CredentialsDTO(
-            gateway: $clone->resolveGatewayName(),
-            profile: $clone->resolveProfile(),
-            credentials: $credentials,
-            tenantId: $clone->context['tenant_id'] ?? null,
-        );
-
-        return $clone;
-    }
+    // -------------------------------------------------------
+    // Refund
+    // -------------------------------------------------------
 
     /**
      * Refund a payment (if supported by the driver).
@@ -163,40 +126,5 @@ class RefundManager
 
             throw $e;
         }
-    }
-
-    // -------------------------------------------------------
-    // Internal resolution
-    // -------------------------------------------------------
-
-    protected function resolveGatewayName(): string
-    {
-        return $this->gatewayName ?? $this->config->defaultGateway;
-    }
-
-    protected function resolveProfile(): string
-    {
-        return $this->profile ?? $this->config->defaultProfile;
-    }
-
-    protected function resolveDriver(string $gateway): Contracts\GatewayDriverContract
-    {
-        return $this->registry->resolve($gateway);
-    }
-
-    protected function resolveCredentials(string $gateway): CredentialsDTO
-    {
-        if ($this->oneOffCredentials) {
-            return $this->oneOffCredentials;
-        }
-
-        $profile = $this->resolveProfile();
-        $credentials = $this->credentialsRepo->get($gateway, $profile, $this->context);
-
-        if ($credentials === null) {
-            throw new MissingCredentialsException($gateway, $profile, $this->context['tenant_id'] ?? null);
-        }
-
-        return $credentials;
     }
 }

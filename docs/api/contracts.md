@@ -79,17 +79,6 @@ interface SupportsTokenization
 
 ---
 
-## SupportsInstallments <Badge type="info" text="Future" />
-
-```php
-interface SupportsInstallments
-{
-    public function installmentPlans(CanonicalPayload $payload, CredentialsDTO $credentials): array;
-}
-```
-
----
-
 ## CredentialsRepositoryContract
 
 ```php

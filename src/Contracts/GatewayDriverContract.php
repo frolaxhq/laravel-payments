@@ -28,11 +28,4 @@ interface GatewayDriverContract
      * Set credentials for this driver instance.
      */
     public function setCredentials(CredentialsDTO $credentials): static;
-
-    /**
-     * List capabilities this driver supports.
-     *
-     * @return string[]
-     */
-    public function capabilities(): array;
 }

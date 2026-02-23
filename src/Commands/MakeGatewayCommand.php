@@ -103,7 +103,7 @@ class MakeGatewayCommand extends Command
         string $namespace,
     ): int {
         $vendorName = Str::kebab($name);
-        $basePath = base_path("packages/frolax/payment-{$vendorName}");
+        $basePath = base_path("packages/laravel-payments-{$vendorName}");
 
         if (! is_dir($basePath)) {
             mkdir($basePath, 0755, true);
@@ -407,26 +407,24 @@ PHP
 
     protected function generateAddonComposer(string $vendorName, string $name, string $className, string $namespace): string
     {
-        $escapedNamespace = str_replace('\\', '\\\\', $namespace);
-
         return json_encode([
-            'name' => "frolaxhq/payment-{$vendorName}",
-            'description' => "{$name} payment gateway driver for frolax/laravel-payments",
+            'name' => "frolaxhq/laravel-payments-$vendorName",
+            'description' => "$name payment gateway driver for frolaxhq/laravel-payments",
             'type' => 'library',
             'license' => 'MIT',
             'require' => [
                 'php' => '^8.2',
-                'frolaxhq/laravel-payments' => '^2.0',
+                'frolaxhq/laravel-payments' => '*',
             ],
             'autoload' => [
                 'psr-4' => [
-                    "{$escapedNamespace}\\" => 'src/',
+                    "$namespace\\" => 'src/',
                 ],
             ],
             'extra' => [
                 'laravel' => [
                     'providers' => [
-                        "{$escapedNamespace}\\{$className}ServiceProvider",
+                        "$namespace\\{$className}ServiceProvider",
                     ],
                 ],
             ],

@@ -123,18 +123,7 @@ interface SupportsTokenization
 }
 ```
 
----
 
-### SupportsInstallments <Badge type="info" text="Future" />
-
-For gateways that support EMI or installment payment plans.
-
-```php
-interface SupportsInstallments
-{
-    public function installmentPlans(CanonicalPayload $payload, CredentialsDTO $credentials): array;
-}
-```
 
 ## Checking Capabilities
 

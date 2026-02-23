@@ -9,7 +9,7 @@ use Frolax\Payment\Exceptions\GatewayNotFoundException;
 class GatewayRegistry
 {
     /**
-     * @var array<string, array{driver: class-string|callable, addon: ?GatewayAddonContract, display_name: string, capabilities: string[]}>
+     * @var array<string, array{driver: class-string|callable, addon: ?GatewayAddonContract, display_name: string, capabilities: array<class-string>}>
      */
     protected array $gateways = [];
 
@@ -85,7 +85,7 @@ class GatewayRegistry
     /**
      * Get all registered gateways with metadata.
      *
-     * @return array<string, array{driver: class-string|callable, display_name: string, capabilities: string[], addon: ?GatewayAddonContract}>
+     * @return array<string, array{driver: class-string|callable, display_name: string, capabilities: array<class-string>, addon: ?GatewayAddonContract}>
      */
     public function all(): array
     {
@@ -98,6 +98,54 @@ class GatewayRegistry
     public function addon(string $key): ?GatewayAddonContract
     {
         return $this->gateways[$key]['addon'] ?? null;
+    }
+
+    /**
+     * Get the registered capabilities for a gateway.
+     *
+     * @return array<class-string>
+     */
+    public function capabilities(string $key): array
+    {
+        return $this->gateways[$key]['capabilities'] ?? [];
+    }
+
+    /**
+     * Check if a gateway has a specific capability registered.
+     *
+     * @param  class-string  $capability
+     */
+    public function hasCapability(string $key, string $capability): bool
+    {
+        return in_array($capability, $this->capabilities($key), true);
+    }
+
+    /**
+     * Get all gateways that support a given capability.
+     *
+     * @param  class-string  $capability
+     * @return array<string, array{driver: class-string|callable, display_name: string, capabilities: array<class-string>, addon: ?GatewayAddonContract}>
+     */
+    public function supporting(string $capability): array
+    {
+        return array_filter($this->gateways, function (array $entry) use ($capability) {
+            return in_array($capability, $entry['capabilities'], true);
+        });
+    }
+
+    /**
+     * Derive capabilities by reflecting on which Supports* interfaces the driver implements.
+     *
+     * @return array<class-string>
+     */
+    public function resolvedCapabilities(string $key): array
+    {
+        $driver = $this->resolve($key);
+
+        return array_values(array_filter(
+            class_implements($driver) ?: [],
+            fn (string $interface) => str_starts_with($interface, 'Frolax\\Payment\\Contracts\\Supports'),
+        ));
     }
 
     /**

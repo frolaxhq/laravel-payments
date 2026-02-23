@@ -2,6 +2,8 @@
 
 namespace Frolax\Payment\Models;
 
+use Frolax\Payment\Contracts\GatewayDriverContract;
+use Frolax\Payment\GatewayRegistry;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
@@ -41,9 +43,68 @@ class PaymentGateway extends Model
         return $this->hasMany(PaymentModel::class, 'gateway_name', 'name');
     }
 
+    // -------------------------------------------------------
+    // Gateway introspection helpers
+    // -------------------------------------------------------
+
+    /**
+     * Check if this gateway supports a specific capability.
+     *
+     * @param  class-string  $capability  e.g. SupportsRecurring::class
+     */
+    public function supports(string $capability): bool
+    {
+        return $this->registry()->hasCapability($this->driver, $capability);
+    }
+
+    /**
+     * Get the registered capabilities for this gateway.
+     *
+     * @return array<class-string>
+     */
+    public function capabilities(): array
+    {
+        return $this->registry()->capabilities($this->driver);
+    }
+
+    /**
+     * Resolve the driver instance for this gateway.
+     */
+    public function resolveDriver(): GatewayDriverContract
+    {
+        return $this->registry()->resolve($this->driver);
+    }
+
+    // -------------------------------------------------------
+    // Scopes
+    // -------------------------------------------------------
+
     #[Scope]
     protected function active(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    /**
+     * Scope: only gateways that support a specific capability.
+     *
+     * @param  class-string  $capability
+     */
+    #[Scope]
+    protected function supporting(Builder $query, string $capability): Builder
+    {
+        $registry = $this->registry();
+        $supportingKeys = array_keys($registry->supporting($capability));
+
+        return $query->whereIn('driver', $supportingKeys);
+    }
+
+    // -------------------------------------------------------
+    // Internal
+    // -------------------------------------------------------
+
+    protected function registry(): GatewayRegistry
+    {
+        return app(GatewayRegistry::class);
     }
 }
