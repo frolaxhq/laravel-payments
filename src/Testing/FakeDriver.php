@@ -6,12 +6,12 @@ use Frolax\Payment\Contracts\GatewayDriverContract;
 use Frolax\Payment\Contracts\SupportsRecurring;
 use Frolax\Payment\Contracts\SupportsRefund;
 use Frolax\Payment\Contracts\SupportsStatusQuery;
-use Frolax\Payment\Data\SubscriptionPayload;
 use Frolax\Payment\Data\Credentials;
 use Frolax\Payment\Data\GatewayResult;
 use Frolax\Payment\Data\Payload;
 use Frolax\Payment\Data\RefundPayload;
 use Frolax\Payment\Data\StatusPayload;
+use Frolax\Payment\Data\SubscriptionPayload;
 use Frolax\Payment\Enums\PaymentStatus;
 use Illuminate\Http\Request;
 

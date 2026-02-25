@@ -1,8 +1,8 @@
 <?php
 
-use Frolax\Payment\Data\SubscriptionPayload;
 use Frolax\Payment\Data\PlanDTO;
 use Frolax\Payment\Data\SubscriptionItemDTO;
+use Frolax\Payment\Data\SubscriptionPayload;
 
 // -------------------------------------------------------
 // PlanDTO

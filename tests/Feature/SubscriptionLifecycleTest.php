@@ -2,10 +2,10 @@
 
 use Frolax\Payment\Contracts\GatewayDriverContract;
 use Frolax\Payment\Contracts\SupportsRecurring;
-use Frolax\Payment\Data\SubscriptionPayload;
 use Frolax\Payment\Data\Credentials;
 use Frolax\Payment\Data\GatewayResult;
 use Frolax\Payment\Data\Payload;
+use Frolax\Payment\Data\SubscriptionPayload;
 use Frolax\Payment\Enums\PaymentStatus;
 use Frolax\Payment\Enums\SubscriptionStatus;
 use Frolax\Payment\Events\SubscriptionCancelled;

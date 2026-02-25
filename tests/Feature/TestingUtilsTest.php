@@ -1,10 +1,10 @@
 <?php
 
-use Frolax\Payment\Data\SubscriptionPayload;
 use Frolax\Payment\Data\Credentials;
 use Frolax\Payment\Data\Payload;
 use Frolax\Payment\Data\RefundPayload;
 use Frolax\Payment\Data\StatusPayload;
+use Frolax\Payment\Data\SubscriptionPayload;
 use Frolax\Payment\Enums\PaymentStatus;
 use Frolax\Payment\Facades\Payment;
 use Frolax\Payment\Testing\FakeDriver;

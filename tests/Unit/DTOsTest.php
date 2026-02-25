@@ -1,7 +1,6 @@
 <?php
 
 use Frolax\Payment\Data\Address;
-use Frolax\Payment\Data\SubscriptionPayload;
 use Frolax\Payment\Data\ContextDTO;
 use Frolax\Payment\Data\Credentials;
 use Frolax\Payment\Data\Customer;
@@ -9,6 +8,7 @@ use Frolax\Payment\Data\GatewayResult;
 use Frolax\Payment\Data\OrderItemDTO;
 use Frolax\Payment\Data\PlanDTO;
 use Frolax\Payment\Data\StatusPayload;
+use Frolax\Payment\Data\SubscriptionPayload;
 use Frolax\Payment\Enums\PaymentStatus;
 
 test('address DTO can be instantiated and arrayified', function () {

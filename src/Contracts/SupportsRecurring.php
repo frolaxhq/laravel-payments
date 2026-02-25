@@ -2,9 +2,9 @@
 
 namespace Frolax\Payment\Contracts;
 
-use Frolax\Payment\Data\SubscriptionPayload;
 use Frolax\Payment\Data\Credentials;
 use Frolax\Payment\Data\GatewayResult;
+use Frolax\Payment\Data\SubscriptionPayload;
 
 interface SupportsRecurring
 {
