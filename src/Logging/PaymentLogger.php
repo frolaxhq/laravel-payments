@@ -3,7 +3,7 @@
 namespace Frolax\Payment\Logging;
 
 use Frolax\Payment\Contracts\PaymentLoggerContract;
-use Frolax\Payment\DTOs\CanonicalPayload;
+use Frolax\Payment\Data\Payload;
 use Frolax\Payment\Enums\LogLevel;
 use Frolax\Payment\Models\PaymentLog;
 use Frolax\Payment\PaymentConfig;
@@ -42,7 +42,7 @@ class PaymentLogger implements PaymentLoggerContract
         }
 
         // Flatten context to dot-notation
-        $flatContext = CanonicalPayload::flattenDot($context);
+        $flatContext = Payload::flattenDot($context);
 
         // Redact sensitive keys
         $redactedFlat = $this->redact($flatContext);

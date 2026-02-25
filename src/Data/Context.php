@@ -1,8 +1,8 @@
 <?php
 
-namespace Frolax\Payment\DTOs;
+namespace Frolax\Payment\Data;
 
-final readonly class ContextDTO
+final readonly class Context
 {
     public function __construct(
         public ?string $ip = null,

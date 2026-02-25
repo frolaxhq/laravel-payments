@@ -4,7 +4,7 @@ namespace Frolax\Payment\Exceptions;
 
 use RuntimeException;
 
-class InvalidCanonicalPayloadException extends RuntimeException
+class InvalidPayloadException extends RuntimeException
 {
     protected array $errors;
 

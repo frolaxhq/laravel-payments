@@ -118,15 +118,15 @@ Payment::gateway('stripe')
 
 Drivers implement `GatewayDriverContract` plus optional capability interfaces:
 
-| Interface | Capability |
-|-----------|-----------|
-| `SupportsHostedRedirect` | Redirect to hosted checkout |
+| Interface                     | Capability                     |
+|-------------------------------|--------------------------------|
+| `SupportsHostedRedirect`      | Redirect to hosted checkout    |
 | `SupportsWebhookVerification` | Webhook signature verification |
-| `SupportsRefund` | Refund processing |
-| `SupportsStatusQuery` | Payment status queries |
-| `SupportsRecurring` | Subscription lifecycle |
-| `SupportsTokenization` | Saved payment methods |
-| `SupportsCOD` | Cash on delivery |
+| `SupportsRefund`              | Refund processing              |
+| `SupportsStatusQuery`         | Payment status queries         |
+| `SupportsRecurring`           | Subscription lifecycle         |
+| `SupportsTokenization`        | Saved payment methods          |
+| `SupportsCOD`                 | Cash on delivery               |
 
 ## Creating a Gateway
 
@@ -154,29 +154,30 @@ php artisan payments:webhooks:replay {id}        # Replay webhook
 
 ## Events
 
-| Event | When |
-|-------|------|
-| `PaymentCreated` | Payment successfully created |
-| `PaymentVerified` | Payment verified from callback |
-| `PaymentFailed` | Payment creation failed |
-| `PaymentCancelled` | Payment cancelled by user |
-| `PaymentRefundRequested` | Refund initiated |
-| `PaymentRefunded` | Refund completed |
-| `SubscriptionCreated` | Subscription created |
-| `SubscriptionRenewed` | Subscription renewed |
-| `SubscriptionCancelled` | Subscription cancelled |
-| `SubscriptionPaused` | Subscription paused |
-| `SubscriptionResumed` | Subscription resumed |
-| `SubscriptionTrialEnding` | Trial ending soon |
-| `PaymentMethodSaved` | Payment method saved |
-| `PaymentMethodDeleted` | Payment method deleted |
-| `WebhookReceived` | Webhook received from gateway |
+| Event                     | When                           |
+|---------------------------|--------------------------------|
+| `PaymentCreated`          | Payment successfully created   |
+| `PaymentVerified`         | Payment verified from callback |
+| `PaymentFailed`           | Payment creation failed        |
+| `PaymentCancelled`        | Payment cancelled by user      |
+| `PaymentRefundRequested`  | Refund initiated               |
+| `PaymentRefunded`         | Refund completed               |
+| `SubscriptionCreated`     | Subscription created           |
+| `SubscriptionRenewed`     | Subscription renewed           |
+| `SubscriptionCancelled`   | Subscription cancelled         |
+| `SubscriptionPaused`      | Subscription paused            |
+| `SubscriptionResumed`     | Subscription resumed           |
+| `SubscriptionTrialEnding` | Trial ending soon              |
+| `PaymentMethodSaved`      | Payment method saved           |
+| `PaymentMethodDeleted`    | Payment method deleted         |
+| `WebhookReceived`         | Webhook received from gateway  |
 
 ## Database Tables
 
 All tables use ULID primary keys and configurable table names:
 
-**Core:** `payment_gateways`, `payment_gateway_credentials`, `payments`, `payment_attempts`, `payment_webhook_events`, `payment_refunds`, `payment_logs`
+**Core:** `payment_gateways`, `payment_gateway_credentials`, `payments`, `payment_attempts`, `payment_webhook_events`,
+`payment_refunds`, `payment_logs`
 
 **Subscriptions:** `payment_subscriptions`, `payment_subscription_items`, `payment_subscription_usage`
 
@@ -186,7 +187,7 @@ Full documentation available at [docs site](https://frolaxhq.github.io/laravel-p
 
 - [Guide](docs/guide/) — Getting started, core concepts, usage, extending
 - [Reference](docs/reference/) — Configuration, database schema, CLI, env vars
-- [API Reference](docs/api/) — Contracts, DTOs, enums, events, models
+- [API Reference](docs/api/) — Contracts, Data, enums, events, models
 
 ## Testing
 

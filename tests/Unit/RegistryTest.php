@@ -1,9 +1,9 @@
 <?php
 
 use Frolax\Payment\Contracts\GatewayDriverContract;
-use Frolax\Payment\DTOs\CanonicalPayload;
-use Frolax\Payment\DTOs\CredentialsDTO;
-use Frolax\Payment\DTOs\GatewayResult;
+use Frolax\Payment\Data\Credentials;
+use Frolax\Payment\Data\GatewayResult;
+use Frolax\Payment\Data\Payload;
 use Frolax\Payment\Enums\PaymentStatus;
 use Frolax\Payment\Exceptions\GatewayNotFoundException;
 use Frolax\Payment\GatewayRegistry;
@@ -23,17 +23,17 @@ test('registry registers and resolves a gateway', function () {
             return 'dummy';
         }
 
-        public function create(CanonicalPayload $p, CredentialsDTO $c): GatewayResult
+        public function create(Payload $p, Credentials $c): GatewayResult
         {
             return new GatewayResult(status: PaymentStatus::Completed);
         }
 
-        public function verify(Request $r, CredentialsDTO $c): GatewayResult
+        public function verify(Request $r, Credentials $c): GatewayResult
         {
             return new GatewayResult(status: PaymentStatus::Completed);
         }
 
-        public function setCredentials(CredentialsDTO $c): static
+        public function setCredentials(Credentials $c): static
         {
             return $this;
         }

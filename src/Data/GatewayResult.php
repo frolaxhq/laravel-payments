@@ -1,6 +1,6 @@
 <?php
 
-namespace Frolax\Payment\DTOs;
+namespace Frolax\Payment\Data;
 
 use Frolax\Payment\Enums\PaymentStatus;
 

@@ -12,9 +12,9 @@ namespace Frolax\Payment\Contracts;
 interface GatewayDriverContract
 {
     public function name(): string;
-    public function create(CanonicalPayload $payload, CredentialsDTO $credentials): GatewayResult;
-    public function verify(Request $request, CredentialsDTO $credentials): GatewayResult;
-    public function setCredentials(CredentialsDTO $credentials): static;
+    public function create(Payload $payload, Credentials $credentials): GatewayResult;
+    public function verify(Request $request, Credentials $credentials): GatewayResult;
+    public function setCredentials(Credentials $credentials): static;
     public function capabilities(): array;
 }
 ```
@@ -37,7 +37,7 @@ interface SupportsHostedRedirect
 ```php
 interface SupportsWebhookVerification
 {
-    public function verifyWebhookSignature(Request $request, CredentialsDTO $credentials): bool;
+    public function verifyWebhookSignature(Request $request, Credentials $credentials): bool;
     public function parseWebhookEventType(Request $request): ?string;
     public function parseWebhookGatewayReference(Request $request): ?string;
 }
@@ -50,7 +50,7 @@ interface SupportsWebhookVerification
 ```php
 interface SupportsRefund
 {
-    public function refund(CanonicalRefundPayload $payload, CredentialsDTO $credentials): GatewayResult;
+    public function refund(RefundPayload $payload, Credentials $credentials): GatewayResult;
 }
 ```
 
@@ -61,7 +61,7 @@ interface SupportsRefund
 ```php
 interface SupportsStatusQuery
 {
-    public function status(CanonicalStatusPayload $payload, CredentialsDTO $credentials): GatewayResult;
+    public function status(StatusPayload $payload, Credentials $credentials): GatewayResult;
 }
 ```
 
@@ -72,8 +72,8 @@ interface SupportsStatusQuery
 ```php
 interface SupportsTokenization
 {
-    public function tokenize(CanonicalPayload $payload, CredentialsDTO $credentials): GatewayResult;
-    public function chargeToken(string $token, CanonicalPayload $payload, CredentialsDTO $credentials): GatewayResult;
+    public function tokenize(Payload $payload, Credentials $credentials): GatewayResult;
+    public function chargeToken(string $token, Payload $payload, Credentials $credentials): GatewayResult;
 }
 ```
 
@@ -84,12 +84,13 @@ interface SupportsTokenization
 ```php
 interface CredentialsRepositoryContract
 {
-    public function get(string $gateway, string $profile = 'test', array $context = []): ?CredentialsDTO;
+    public function get(string $gateway, string $profile = 'test', array $context = []): ?Credentials;
     public function has(string $gateway, string $profile = 'test', array $context = []): bool;
 }
 ```
 
 **Implementations:**
+
 - `EnvCredentialsRepository` — Reads from config
 - `DatabaseCredentialsRepository` — Reads from DB with tenant/time/priority
 - `CompositeCredentialsRepository` — DB first, fallback to ENV

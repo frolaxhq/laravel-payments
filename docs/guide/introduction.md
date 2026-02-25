@@ -2,13 +2,16 @@
 
 ## What is Laravel Payments?
 
-**Laravel Payments** is a production-grade, gateway-agnostic payment abstraction layer for Laravel applications. It provides a **single canonical payload** structure that works with every payment gateway, allowing you to switch between gateways without changing your application code.
+**Laravel Payments** is a production-grade, gateway-agnostic payment abstraction layer for Laravel applications. It
+provides a **single canonical payload** structure that works with every payment gateway, allowing you to switch between
+gateways without changing your application code.
 
 ## Why Laravel Payments?
 
 ### The Problem
 
-Every payment gateway has a different API, different payload shapes, different authentication mechanisms, and different webhook formats. This leads to:
+Every payment gateway has a different API, different payload shapes, different authentication mechanisms, and different
+webhook formats. This leads to:
 
 - Gateway-specific code scattered throughout your application
 - Painful gateway migrations requiring sweeping code changes
@@ -26,7 +29,8 @@ Laravel Payments introduces a **canonical layer** between your application and p
 └─────────────────┘     └──────────────────┘     └──────────────────┘
 ```
 
-Your application always speaks in the **same canonical payload shape**. Gateway drivers translate that shape into gateway-specific API calls internally.
+Your application always speaks in the **same canonical payload shape**. Gateway drivers translate that shape into
+gateway-specific API calls internally.
 
 ## Key Principles
 
@@ -46,7 +50,8 @@ The exact same `create()` call works with **any** registered gateway driver.
 
 ### 2. Open/Closed Principle
 
-The core package never branches on gateway names. Instead, drivers implement **capability interfaces** for the features they support:
+The core package never branches on gateway names. Instead, drivers implement **capability interfaces** for the features
+they support:
 
 - `SupportsHostedRedirect` — Redirect to hosted checkout page
 - `SupportsWebhookVerification` — Verify webhook signatures
@@ -55,7 +60,8 @@ The core package never branches on gateway names. Instead, drivers implement **c
 
 ### 3. Auto-Discovery
 
-Gateway addon packages are automatically discovered when installed via Composer. No manual registration, no config changes.
+Gateway addon packages are automatically discovered when installed via Composer. No manual registration, no config
+changes.
 
 ```bash
 composer require frolax/payment-bkash
@@ -78,7 +84,7 @@ frolax/laravel-payments
 ├── Core
 │   ├── Payment Manager (fluent API)
 │   ├── GatewayRegistry (driver management)
-│   ├── Canonical Payload DTOs
+│   ├── Canonical Payload Data
 │   └── Capability Contracts
 ├── Credentials
 │   ├── EnvCredentialsRepository

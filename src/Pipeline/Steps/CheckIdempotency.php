@@ -3,7 +3,7 @@
 namespace Frolax\Payment\Pipeline\Steps;
 
 use Closure;
-use Frolax\Payment\DTOs\GatewayResult;
+use Frolax\Payment\Data\GatewayResult;
 use Frolax\Payment\Enums\PaymentStatus;
 use Frolax\Payment\Models\PaymentModel;
 use Frolax\Payment\PaymentConfig;
@@ -27,9 +27,9 @@ class CheckIdempotency
 
         $existing = PaymentModel::where('idempotency_key', $context->payload->idempotencyKey)->first();
 
-        if ($existing && $existing->status !== PaymentStatus::Pending->value) {
+        if ($existing && $existing->status !== PaymentStatus::Pending) {
             $context->result = new GatewayResult(
-                status: PaymentStatus::from($existing->status),
+                status: $existing->status,
                 gatewayReference: $existing->gateway_reference,
             );
 

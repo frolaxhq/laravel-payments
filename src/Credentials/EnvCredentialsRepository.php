@@ -3,11 +3,11 @@
 namespace Frolax\Payment\Credentials;
 
 use Frolax\Payment\Contracts\CredentialsRepositoryContract;
-use Frolax\Payment\DTOs\CredentialsDTO;
+use Frolax\Payment\Data\Credentials;
 
 class EnvCredentialsRepository implements CredentialsRepositoryContract
 {
-    public function get(string $gateway, string $profile, array $context = []): ?CredentialsDTO
+    public function get(string $gateway, string $profile, array $context = []): ?Credentials
     {
         $credentials = config("payments.gateways.{$gateway}.{$profile}");
 
@@ -15,7 +15,7 @@ class EnvCredentialsRepository implements CredentialsRepositoryContract
             return null;
         }
 
-        return new CredentialsDTO(
+        return new Credentials(
             gateway: $gateway,
             profile: $profile,
             credentials: $credentials,

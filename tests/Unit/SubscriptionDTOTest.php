@@ -1,8 +1,8 @@
 <?php
 
-use Frolax\Payment\DTOs\CanonicalSubscriptionPayload;
-use Frolax\Payment\DTOs\PlanDTO;
-use Frolax\Payment\DTOs\SubscriptionItemDTO;
+use Frolax\Payment\Data\SubscriptionPayload;
+use Frolax\Payment\Data\PlanDTO;
+use Frolax\Payment\Data\SubscriptionItemDTO;
 
 // -------------------------------------------------------
 // PlanDTO
@@ -17,7 +17,7 @@ test('PlanDTO creates from array', function () {
         'interval_count' => 1,
     ]);
 
-    expect($plan->id)->toBe('plan_pro');
+    expect($plan->priceId)->toBe('plan_pro');
     expect($plan->name)->toBe('Pro Plan');
     expect($plan->money->amount)->toBe(49.99);
     expect($plan->interval)->toBe('monthly');
@@ -92,11 +92,11 @@ test('SubscriptionItemDTO converts to array', function () {
 });
 
 // -------------------------------------------------------
-// CanonicalSubscriptionPayload
+// SubscriptionPayload
 // -------------------------------------------------------
 
-test('CanonicalSubscriptionPayload creates from array', function () {
-    $payload = CanonicalSubscriptionPayload::fromArray([
+test('SubscriptionPayload creates from array', function () {
+    $payload = SubscriptionPayload::fromArray([
         'plan' => [
             'id' => 'plan_pro',
             'name' => 'Pro Plan',
@@ -112,13 +112,13 @@ test('CanonicalSubscriptionPayload creates from array', function () {
         ],
     ]);
 
-    expect($payload->plan->id)->toBe('plan_pro');
+    expect($payload->plan->priceId)->toBe('plan_pro');
     expect($payload->customer->name)->toBe('Jane Doe');
     expect($payload->urls->return)->toBe('https://example.com/return');
 });
 
-test('CanonicalSubscriptionPayload supports trial days', function () {
-    $payload = CanonicalSubscriptionPayload::fromArray([
+test('SubscriptionPayload supports trial days', function () {
+    $payload = SubscriptionPayload::fromArray([
         'plan' => [
             'id' => 'plan_trial',
             'name' => 'Trial',
@@ -131,8 +131,8 @@ test('CanonicalSubscriptionPayload supports trial days', function () {
     expect($payload->trialDays)->toBe(7);
 });
 
-test('CanonicalSubscriptionPayload supports items', function () {
-    $payload = CanonicalSubscriptionPayload::fromArray([
+test('SubscriptionPayload supports items', function () {
+    $payload = SubscriptionPayload::fromArray([
         'plan' => [
             'id' => 'plan_multi',
             'name' => 'Multi',
@@ -150,8 +150,8 @@ test('CanonicalSubscriptionPayload supports items', function () {
     expect($payload->items[0]->quantity)->toBe(5);
 });
 
-test('CanonicalSubscriptionPayload requires plan', function () {
-    CanonicalSubscriptionPayload::fromArray([
+test('SubscriptionPayload requires plan', function () {
+    SubscriptionPayload::fromArray([
         'customer' => ['email' => 'test@test.com'],
     ]);
 })->throws(ErrorException::class);

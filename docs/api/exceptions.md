@@ -38,18 +38,19 @@ throw new UnsupportedCapabilityException('stripe', 'refund');
 // Message: "Gateway [stripe] does not support [refund]."
 ```
 
-## InvalidCanonicalPayloadException
+## InvalidPayloadException
 
 Thrown when the canonical payload fails validation.
 
 ```php
-throw new InvalidCanonicalPayloadException([
+throw new InvalidPayloadException([
     'order.id' => 'required',
     'money.amount' => 'must be positive',
 ]);
 ```
 
 Properties:
+
 - `getErrors(): array` — Validation error details
 
 ## GatewayRequestFailedException
@@ -61,6 +62,7 @@ throw GatewayRequestFailedException::withResponse('stripe', $response);
 ```
 
 Properties:
+
 - `getGatewayResponse(): array` — Raw response from the gateway
 
 ## VerificationMismatchException

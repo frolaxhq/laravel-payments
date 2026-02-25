@@ -4,7 +4,7 @@ namespace Frolax\Payment\Concerns;
 
 use Frolax\Payment\Contracts\CredentialsRepositoryContract;
 use Frolax\Payment\Contracts\GatewayDriverContract;
-use Frolax\Payment\DTOs\CredentialsDTO;
+use Frolax\Payment\Data\Credentials;
 use Frolax\Payment\Exceptions\MissingCredentialsException;
 use Frolax\Payment\GatewayRegistry;
 use Frolax\Payment\PaymentConfig;
@@ -23,7 +23,7 @@ trait HasGatewayContext
 
     protected array $context = [];
 
-    protected ?CredentialsDTO $oneOffCredentials = null;
+    protected ?Credentials $oneOffCredentials = null;
 
     abstract protected function registry(): GatewayRegistry;
 
@@ -70,7 +70,7 @@ trait HasGatewayContext
     public function usingCredentials(array $credentials): static
     {
         $clone = clone $this;
-        $clone->oneOffCredentials = new CredentialsDTO(
+        $clone->oneOffCredentials = new Credentials(
             gateway: $clone->resolveGatewayName(),
             profile: $clone->resolveProfile(),
             credentials: $credentials,
@@ -127,7 +127,7 @@ trait HasGatewayContext
         return $this->registry()->resolve($gateway);
     }
 
-    protected function resolveCredentials(string $gateway): CredentialsDTO
+    protected function resolveCredentials(string $gateway): Credentials
     {
         if ($this->oneOffCredentials) {
             return $this->oneOffCredentials;

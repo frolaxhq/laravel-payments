@@ -85,14 +85,14 @@ $result = $manager->gateway('stripe')->create([
 
 ## Events
 
-| Event | When |
-|-------|------|
-| `SubscriptionCreated` | New subscription created |
-| `SubscriptionRenewed` | Subscription renewed successfully |
-| `SubscriptionPaused` | Subscription paused |
-| `SubscriptionResumed` | Subscription resumed |
-| `SubscriptionCancelled` | Subscription cancelled |
-| `SubscriptionTrialEnding` | Trial period ending soon |
+| Event                     | When                              |
+|---------------------------|-----------------------------------|
+| `SubscriptionCreated`     | New subscription created          |
+| `SubscriptionRenewed`     | Subscription renewed successfully |
+| `SubscriptionPaused`      | Subscription paused               |
+| `SubscriptionResumed`     | Subscription resumed              |
+| `SubscriptionCancelled`   | Subscription cancelled            |
+| `SubscriptionTrialEnding` | Trial period ending soon          |
 
 ## Enums
 
@@ -113,14 +113,14 @@ use Frolax\Payment\Contracts\SupportsRecurring;
 
 class StripeDriver extends AbstractGatewayDriver implements SupportsRecurring
 {
-    public function createSubscription(CanonicalSubscriptionPayload $payload, CredentialsDTO $credentials): GatewayResult
+    public function createSubscription(SubscriptionPayload $payload, Credentials $credentials): GatewayResult
     {
         // Create subscription via Stripe API
     }
 
-    public function cancelSubscription(string $subscriptionId, CredentialsDTO $credentials): GatewayResult { /* ... */ }
-    public function pauseSubscription(string $subscriptionId, CredentialsDTO $credentials): GatewayResult { /* ... */ }
-    public function resumeSubscription(string $subscriptionId, CredentialsDTO $credentials): GatewayResult { /* ... */ }
-    public function updateSubscription(string $subscriptionId, array $data, CredentialsDTO $credentials): GatewayResult { /* ... */ }
+    public function cancelSubscription(string $subscriptionId, Credentials $credentials): GatewayResult { /* ... */ }
+    public function pauseSubscription(string $subscriptionId, Credentials $credentials): GatewayResult { /* ... */ }
+    public function resumeSubscription(string $subscriptionId, Credentials $credentials): GatewayResult { /* ... */ }
+    public function updateSubscription(string $subscriptionId, array $data, Credentials $credentials): GatewayResult { /* ... */ }
 }
 ```

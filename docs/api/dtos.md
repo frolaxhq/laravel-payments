@@ -1,18 +1,18 @@
 # DTOs (API Reference)
 
-All Data Transfer Objects in `Frolax\Payment\DTOs`. All DTOs are `final readonly` classes.
+All Data Transfer Objects in `Frolax\Payment\Data`. All Data are `final readonly` classes.
 
-## CanonicalPayload
+## Payload
 
 The core payload sent to every gateway driver.
 
 ```php
-final readonly class CanonicalPayload
+final readonly class Payload
 {
     public string $idempotencyKey;
-    public OrderDTO $order;
-    public MoneyDTO $money;
-    public ?CustomerDTO $customer;
+    public Order $order;
+    public Money $money;
+    public ?Customer $customer;
     public ?UrlsDTO $urls;
     public ?ContextDTO $context;
     public array $metadata;
@@ -25,10 +25,10 @@ final readonly class CanonicalPayload
 }
 ```
 
-## MoneyDTO
+## Money
 
 ```php
-final readonly class MoneyDTO
+final readonly class Money
 {
     public float|int $amount;  // Must be positive
     public string $currency;   // 3-letter ISO code, auto-uppercased
@@ -38,10 +38,10 @@ final readonly class MoneyDTO
 }
 ```
 
-## OrderDTO
+## Order
 
 ```php
-final readonly class OrderDTO
+final readonly class Order
 {
     public string $id;
     public ?string $description;
@@ -70,25 +70,25 @@ final readonly class OrderItemDTO
 }
 ```
 
-## CustomerDTO
+## Customer
 
 ```php
-final readonly class CustomerDTO
+final readonly class Customer
 {
     public ?string $name;
     public ?string $email;
     public ?string $phone;
-    public ?AddressDTO $address;
+    public ?Address $address;
 
     public static function fromArray(?array $data): ?static;
     public function toArray(): array;
 }
 ```
 
-## AddressDTO
+## Address
 
 ```php
-final readonly class AddressDTO
+final readonly class Address
 {
     public ?string $line1;
     public ?string $line2;
@@ -130,10 +130,10 @@ final readonly class ContextDTO
 }
 ```
 
-## CredentialsDTO
+## Credentials
 
 ```php
-final readonly class CredentialsDTO
+final readonly class Credentials
 {
     public string $gateway;
     public string $profile;
@@ -164,14 +164,14 @@ final readonly class GatewayResult
 }
 ```
 
-## CanonicalRefundPayload
+## RefundPayload
 
 ```php
-final readonly class CanonicalRefundPayload
+final readonly class RefundPayload
 {
     public string $paymentId;
     public ?string $gatewayReference;
-    public MoneyDTO $money;
+    public Money $money;
     public ?string $reason;
     public array $metadata;
     public array $extra;
@@ -181,10 +181,10 @@ final readonly class CanonicalRefundPayload
 }
 ```
 
-## CanonicalStatusPayload
+## StatusPayload
 
 ```php
-final readonly class CanonicalStatusPayload
+final readonly class StatusPayload
 {
     public string $paymentId;
     public ?string $gatewayReference;

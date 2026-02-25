@@ -2,13 +2,13 @@
 
 namespace Frolax\Payment\Contracts;
 
-use Frolax\Payment\DTOs\CanonicalPayload;
-use Frolax\Payment\DTOs\CredentialsDTO;
-use Frolax\Payment\DTOs\GatewayResult;
+use Frolax\Payment\Data\Credentials;
+use Frolax\Payment\Data\GatewayResult;
+use Frolax\Payment\Data\Payload;
 
 interface SupportsCOD
 {
-    public function createCODOrder(CanonicalPayload $payload, CredentialsDTO $credentials): GatewayResult;
+    public function createCODOrder(Payload $payload, Credentials $credentials): GatewayResult;
 
-    public function confirmCODDelivery(string $orderId, CredentialsDTO $credentials): GatewayResult;
+    public function confirmCODDelivery(string $orderId, Credentials $credentials): GatewayResult;
 }

@@ -25,10 +25,8 @@ class ReturnController extends Controller
         try {
             $result = $payment->gateway($gateway)->verifyFromRequest($request);
 
-            $logger->info('return.verified', "Return verification completed for [$gateway]", [
-                'gateway' => ['name' => $gateway],
-                'verification' => ['status' => $result->status->value, 'paid' => $result->isSuccessful()],
-            ]);
+            $context = ['gateway' => ['name' => $gateway], 'verification' => ['status' => $result->status->value, 'paid' => $result->isSuccessful()]];
+            $logger->info('return.verified', "Return verification completed for [$gateway]", $context);
         } catch (Throwable $e) {
             $logger->error('return.failed', "Return verification failed: {$e->getMessage()}", [
                 'gateway' => ['name' => $gateway],

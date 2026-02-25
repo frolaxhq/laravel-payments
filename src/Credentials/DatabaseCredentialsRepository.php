@@ -3,13 +3,13 @@
 namespace Frolax\Payment\Credentials;
 
 use Frolax\Payment\Contracts\CredentialsRepositoryContract;
-use Frolax\Payment\DTOs\CredentialsDTO;
+use Frolax\Payment\Data\Credentials;
 use Frolax\Payment\Models\PaymentGatewayCredential;
 use Illuminate\Support\Facades\Crypt;
 
 class DatabaseCredentialsRepository implements CredentialsRepositoryContract
 {
-    public function get(string $gateway, string $profile, array $context = []): ?CredentialsDTO
+    public function get(string $gateway, string $profile, array $context = []): ?Credentials
     {
         $tenantId = $context['tenant_id'] ?? null;
         $now = now();
@@ -54,7 +54,7 @@ class DatabaseCredentialsRepository implements CredentialsRepositoryContract
         // Decrypt the credentials JSON
         $credentials = $this->decryptCredentials($record->credentials);
 
-        return new CredentialsDTO(
+        return new Credentials(
             gateway: $gateway,
             profile: $profile,
             credentials: $credentials,

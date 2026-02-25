@@ -2,9 +2,9 @@
 
 namespace Frolax\Payment\Contracts;
 
-use Frolax\Payment\DTOs\CanonicalPayload;
-use Frolax\Payment\DTOs\CredentialsDTO;
-use Frolax\Payment\DTOs\GatewayResult;
+use Frolax\Payment\Data\Credentials;
+use Frolax\Payment\Data\GatewayResult;
+use Frolax\Payment\Data\Payload;
 use Illuminate\Http\Request;
 
 interface GatewayDriverContract
@@ -17,15 +17,15 @@ interface GatewayDriverContract
     /**
      * Create a new payment.
      */
-    public function create(CanonicalPayload $payload, CredentialsDTO $credentials): GatewayResult;
+    public function create(Payload $payload, Credentials $credentials): GatewayResult;
 
     /**
      * Verify a payment from a gateway callback/return.
      */
-    public function verify(Request $request, CredentialsDTO $credentials): GatewayResult;
+    public function verify(Request $request, Credentials $credentials): GatewayResult;
 
     /**
      * Set credentials for this driver instance.
      */
-    public function setCredentials(CredentialsDTO $credentials): static;
+    public function setCredentials(Credentials $credentials): static;
 }

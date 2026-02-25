@@ -2,7 +2,7 @@
 
 namespace Frolax\Payment\Testing;
 
-use Frolax\Payment\DTOs\GatewayResult;
+use Frolax\Payment\Data\GatewayResult;
 use Frolax\Payment\Enums\PaymentStatus;
 use Frolax\Payment\Payment;
 use Illuminate\Http\Request;
@@ -20,7 +20,7 @@ use PHPUnit\Framework\Assert;
 class PaymentFake extends Payment
 {
     /** @var array<array{gateway: string, method: string, data: array, result: GatewayResult}> */
-    protected array $recorded = [];
+    protected static array $recorded = [];
 
     protected ?GatewayResult $pendingResult = null;
 
@@ -71,7 +71,7 @@ class PaymentFake extends Payment
     public function charge(array $data): GatewayResult
     {
         $result = $this->resolveResult();
-        $this->recorded[] = [
+        self::$recorded[] = [
             'gateway' => $this->resolveGatewayName(),
             'method' => 'charge',
             'data' => $data,
@@ -89,7 +89,7 @@ class PaymentFake extends Payment
     public function subscribe(array $data): GatewayResult
     {
         $result = $this->resolveResult();
-        $this->recorded[] = [
+        self::$recorded[] = [
             'gateway' => $this->resolveGatewayName(),
             'method' => 'subscribe',
             'data' => $data,
@@ -102,7 +102,7 @@ class PaymentFake extends Payment
     public function refund(array $data): GatewayResult
     {
         $result = $this->resolveResult();
-        $this->recorded[] = [
+        self::$recorded[] = [
             'gateway' => $this->resolveGatewayName(),
             'method' => 'refund',
             'data' => $data,
@@ -115,7 +115,7 @@ class PaymentFake extends Payment
     public function verifyFromRequest(Request $request): GatewayResult
     {
         $result = $this->resolveResult();
-        $this->recorded[] = [
+        self::$recorded[] = [
             'gateway' => $this->resolveGatewayName(),
             'method' => 'verify',
             'data' => $request->all(),
@@ -167,7 +167,7 @@ class PaymentFake extends Payment
      */
     public function assertGatewayUsed(string $gateway): void
     {
-        $used = array_filter($this->recorded, fn ($r) => $r['gateway'] === $gateway);
+        $used = array_filter(self::$recorded, fn ($r) => $r['gateway'] === $gateway);
         Assert::assertNotEmpty($used, "Expected gateway [{$gateway}] to be used, but it was not.");
     }
 
@@ -176,7 +176,7 @@ class PaymentFake extends Payment
      */
     public function assertGatewayNotUsed(string $gateway): void
     {
-        $used = array_filter($this->recorded, fn ($r) => $r['gateway'] === $gateway);
+        $used = array_filter(self::$recorded, fn ($r) => $r['gateway'] === $gateway);
         Assert::assertEmpty($used, "Expected gateway [{$gateway}] not to be used, but it was.");
     }
 
@@ -185,7 +185,7 @@ class PaymentFake extends Payment
      */
     public function recorded(): array
     {
-        return $this->recorded;
+        return self::$recorded;
     }
 
     // -------------------------------------------------------
@@ -206,7 +206,7 @@ class PaymentFake extends Payment
 
     protected function recordsFor(string $method): array
     {
-        return array_values(array_filter($this->recorded, fn ($r) => $r['method'] === $method));
+        return array_values(array_filter(self::$recorded, fn ($r) => $r['method'] === $method));
     }
 
     protected function resolveResult(): GatewayResult
@@ -220,7 +220,7 @@ class PaymentFake extends Payment
 
         return new GatewayResult(
             status: PaymentStatus::Pending,
-            gatewayReference: 'FAKE-REF-'.count($this->recorded),
+            gatewayReference: 'FAKE-REF-'.count(self::$recorded),
         );
     }
 }

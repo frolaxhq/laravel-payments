@@ -1,14 +1,15 @@
 <?php
 
-namespace Frolax\Payment\DTOs;
+namespace Frolax\Payment\Data;
 
-final readonly class CustomerDTO
+final readonly class Customer
 {
     public function __construct(
+        public ?string $id,
         public ?string $name = null,
         public ?string $email = null,
         public ?string $phone = null,
-        public ?AddressDTO $address = null,
+        public ?Address $address = null,
     ) {}
 
     public static function fromArray(?array $data): ?self
@@ -18,16 +19,18 @@ final readonly class CustomerDTO
         }
 
         return new self(
+            id: $data['id'] ?? null,
             name: $data['name'] ?? null,
             email: $data['email'] ?? null,
             phone: $data['phone'] ?? null,
-            address: AddressDTO::fromArray($data['address'] ?? null),
+            address: Address::fromArray($data['address'] ?? null),
         );
     }
 
     public function toArray(): array
     {
         return array_filter([
+            'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
             'phone' => $this->phone,

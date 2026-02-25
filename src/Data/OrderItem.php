@@ -1,8 +1,8 @@
 <?php
 
-namespace Frolax\Payment\DTOs;
+namespace Frolax\Payment\Data;
 
-final readonly class OrderItemDTO
+final readonly class OrderItem
 {
     public function __construct(
         public string $name,

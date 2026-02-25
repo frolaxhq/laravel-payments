@@ -12,6 +12,7 @@ class SubscriptionCreated
     public function __construct(
         public readonly string $subscriptionId,
         public readonly string $gateway,
+        public readonly string $priceId,
         public readonly string $planId,
         public readonly float $amount,
         public readonly string $currency,

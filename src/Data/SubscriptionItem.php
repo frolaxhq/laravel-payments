@@ -1,14 +1,14 @@
 <?php
 
-namespace Frolax\Payment\DTOs;
+namespace Frolax\Payment\Data;
 
-final readonly class SubscriptionItemDTO
+final readonly class SubscriptionItem
 {
     public function __construct(
         public string $productId,
         public string $name,
         public int $quantity = 1,
-        public ?MoneyDTO $unitPrice = null,
+        public ?Money $unitPrice = null,
         public array $metadata = [],
     ) {}
 
@@ -18,7 +18,7 @@ final readonly class SubscriptionItemDTO
             productId: $data['product_id'],
             name: $data['name'],
             quantity: $data['quantity'] ?? 1,
-            unitPrice: isset($data['unit_price']) ? MoneyDTO::fromArray($data['unit_price']) : null,
+            unitPrice: isset($data['unit_price']) ? Money::fromArray($data['unit_price']) : null,
             metadata: $data['metadata'] ?? [],
         );
     }

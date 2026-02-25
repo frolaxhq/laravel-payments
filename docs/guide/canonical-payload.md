@@ -1,6 +1,7 @@
 # Canonical Payload
 
-The canonical payload is the core concept of Laravel Payments. It's a single, immutable DTO structure that every gateway driver receives—regardless of the gateway's native API format.
+The canonical payload is the core concept of Laravel Payments. It's a single, immutable DTO structure that every gateway
+driver receives—regardless of the gateway's native API format.
 
 ## Why Canonical?
 
@@ -37,7 +38,7 @@ Payment::gateway($anyGateway)->create([
 ## Payload Structure
 
 ```php
-CanonicalPayload::fromArray([
+Payload::fromArray([
     // Auto-generated if not provided
     'idempotency_key' => 'order-123-attempt-1',
 
@@ -109,39 +110,40 @@ CanonicalPayload::fromArray([
 
 ### Required Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `order.id` | `string` | Your application's order ID |
-| `money.amount` | `int\|float` | Payment amount (must be positive) |
-| `money.currency` | `string` | 3-letter ISO 4217 currency code |
+| Field            | Type         | Description                       |
+|------------------|--------------|-----------------------------------|
+| `order.id`       | `string`     | Your application's order ID       |
+| `money.amount`   | `int\|float` | Payment amount (must be positive) |
+| `money.currency` | `string`     | 3-letter ISO 4217 currency code   |
 
 ### Optional Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `idempotency_key` | `string` | Unique key for duplicate-safe operations |
-| `order.description` | `string` | Human-readable order description |
-| `order.items[]` | `array` | Line items (name, quantity, unit_price) |
-| `customer.name` | `string` | Customer full name |
-| `customer.email` | `string` | Customer email address |
-| `customer.phone` | `string` | Customer phone number |
+| Field                | Type     | Description                               |
+|----------------------|----------|-------------------------------------------|
+| `idempotency_key`    | `string` | Unique key for duplicate-safe operations  |
+| `order.description`  | `string` | Human-readable order description          |
+| `order.items[]`      | `array`  | Line items (name, quantity, unit_price)   |
+| `customer.name`      | `string` | Customer full name                        |
+| `customer.email`     | `string` | Customer email address                    |
+| `customer.phone`     | `string` | Customer phone number                     |
 | `customer.address.*` | `object` | Full address (line1, city, country, etc.) |
-| `urls.return` | `string` | URL to redirect after payment |
-| `urls.cancel` | `string` | URL to redirect on cancellation |
-| `urls.webhook` | `string` | URL for gateway webhook notifications |
-| `context.ip` | `string` | Client IP address |
-| `context.user_agent` | `string` | Client user agent |
-| `context.locale` | `string` | Preferred locale |
-| `metadata` | `array` | Freeform key-value metadata |
-| `extra` | `array` | Driver-specific overrides |
+| `urls.return`        | `string` | URL to redirect after payment             |
+| `urls.cancel`        | `string` | URL to redirect on cancellation           |
+| `urls.webhook`       | `string` | URL for gateway webhook notifications     |
+| `context.ip`         | `string` | Client IP address                         |
+| `context.user_agent` | `string` | Client user agent                         |
+| `context.locale`     | `string` | Preferred locale                          |
+| `metadata`           | `array`  | Freeform key-value metadata               |
+| `extra`              | `array`  | Driver-specific overrides                 |
 
 ## Idempotency
 
-Every canonical payload carries an `idempotency_key`. If you don't provide one, it's auto-generated from the order ID and amount:
+Every canonical payload carries an `idempotency_key`. If you don't provide one, it's auto-generated from the order ID
+and amount:
 
 ```php
 // Auto-generated: sha256(order_id + amount + currency)
-$payload = CanonicalPayload::fromArray([...]);
+$payload = Payload::fromArray([...]);
 echo $payload->idempotencyKey; // "a3f8b2c1..."
 ```
 
@@ -167,10 +169,10 @@ $payload->toDotArray();
 
 ## Refund Payload
 
-Refunds use a separate `CanonicalRefundPayload`:
+Refunds use a separate `RefundPayload`:
 
 ```php
-CanonicalRefundPayload::fromArray([
+RefundPayload::fromArray([
     'payment_id' => 'PAY-001',
     'gateway_reference' => 'ch_1234',
     'money' => ['amount' => 1000, 'currency' => 'USD'],
@@ -181,10 +183,10 @@ CanonicalRefundPayload::fromArray([
 
 ## Status Query Payload
 
-Status queries use `CanonicalStatusPayload`:
+Status queries use `StatusPayload`:
 
 ```php
-CanonicalStatusPayload::fromArray([
+StatusPayload::fromArray([
     'payment_id' => 'PAY-001',
     'gateway_reference' => 'ch_1234',
 ]);

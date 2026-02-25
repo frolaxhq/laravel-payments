@@ -1,9 +1,9 @@
 <?php
 
 use Frolax\Payment\Contracts\GatewayDriverContract;
-use Frolax\Payment\DTOs\CanonicalPayload;
-use Frolax\Payment\DTOs\CredentialsDTO;
-use Frolax\Payment\DTOs\GatewayResult;
+use Frolax\Payment\Data\Credentials;
+use Frolax\Payment\Data\GatewayResult;
+use Frolax\Payment\Data\Payload;
 use Frolax\Payment\Enums\PaymentStatus;
 use Frolax\Payment\Exceptions\GatewayNotFoundException;
 use Frolax\Payment\Exceptions\MissingCredentialsException;
@@ -20,7 +20,7 @@ function createDummyDriver(): GatewayDriverContract
             return 'dummy';
         }
 
-        public function create(CanonicalPayload $p, CredentialsDTO $c): GatewayResult
+        public function create(Payload $p, Credentials $c): GatewayResult
         {
             return new GatewayResult(
                 status: PaymentStatus::Pending,
@@ -29,12 +29,12 @@ function createDummyDriver(): GatewayDriverContract
             );
         }
 
-        public function verify(Request $r, CredentialsDTO $c): GatewayResult
+        public function verify(Request $r, Credentials $c): GatewayResult
         {
             return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: 'GW-REF-001');
         }
 
-        public function setCredentials(CredentialsDTO $c): static
+        public function setCredentials(Credentials $c): static
         {
             return $this;
         }

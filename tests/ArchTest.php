@@ -7,7 +7,7 @@ arch('contracts are interfaces')
     ->toBeInterfaces();
 
 arch('DTOs are readonly final classes')
-    ->expect('Frolax\Payment\DTOs')
+    ->expect('Frolax\Payment\Data')
     ->toBeFinal()
     ->toBeReadonly();
 

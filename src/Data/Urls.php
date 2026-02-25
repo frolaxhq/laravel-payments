@@ -1,8 +1,8 @@
 <?php
 
-namespace Frolax\Payment\DTOs;
+namespace Frolax\Payment\Data;
 
-final readonly class UrlsDTO
+final readonly class Urls
 {
     public function __construct(
         public ?string $return = null,

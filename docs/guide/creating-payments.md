@@ -131,7 +131,8 @@ Payment::gateway('stripe')
 
 ## Idempotency
 
-If you provide an `idempotency_key` and persistence is enabled, the Payment manager checks for existing payments with the same key before creating a new one:
+If you provide an `idempotency_key` and persistence is enabled, the Payment manager checks for existing payments with
+the same key before creating a new one:
 
 ```php
 // First call: creates the payment
@@ -150,7 +151,7 @@ $result = Payment::gateway('stripe')->create([
 ## What Happens Internally
 
 1. **Credential Resolution** — Credentials resolved from ENV/DB based on gateway + profile + context
-2. **Canonical Payload** — Input array converted to `CanonicalPayload` DTO
+2. **Canonical Payload** — Input array converted to `Payload` DTO
 3. **Idempotency Check** — If persistence enabled, checks for existing payment with same key
 4. **Driver Execution** — `$driver->create($payload, $credentials)` called
 5. **Persistence** — Payment record saved to `payments` table, attempt logged to `payment_attempts`

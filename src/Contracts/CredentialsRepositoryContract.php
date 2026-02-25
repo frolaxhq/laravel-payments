@@ -2,7 +2,7 @@
 
 namespace Frolax\Payment\Contracts;
 
-use Frolax\Payment\DTOs\CredentialsDTO;
+use Frolax\Payment\Data\Credentials;
 
 interface CredentialsRepositoryContract
 {
@@ -13,7 +13,7 @@ interface CredentialsRepositoryContract
      * @param  string  $profile  Profile (test/live)
      * @param  array  $context  Optional context (e.g. ['tenant_id' => ...])
      */
-    public function get(string $gateway, string $profile, array $context = []): ?CredentialsDTO;
+    public function get(string $gateway, string $profile, array $context = []): ?Credentials;
 
     /**
      * Check if credentials exist for the given parameters.

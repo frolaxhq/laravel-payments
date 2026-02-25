@@ -2,14 +2,14 @@
 
 namespace Frolax\Payment\Contracts;
 
-use Frolax\Payment\DTOs\CanonicalStatusPayload;
-use Frolax\Payment\DTOs\CredentialsDTO;
-use Frolax\Payment\DTOs\GatewayResult;
+use Frolax\Payment\Data\Credentials;
+use Frolax\Payment\Data\GatewayResult;
+use Frolax\Payment\Data\StatusPayload;
 
 interface SupportsStatusQuery
 {
     /**
      * Query the current status of a payment.
      */
-    public function status(CanonicalStatusPayload $payload, CredentialsDTO $credentials): GatewayResult;
+    public function status(StatusPayload $payload, Credentials $credentials): GatewayResult;
 }

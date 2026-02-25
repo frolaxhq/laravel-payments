@@ -6,9 +6,9 @@ use Frolax\Payment\Concerns\HasGatewayContext;
 use Frolax\Payment\Contracts\CredentialsRepositoryContract;
 use Frolax\Payment\Contracts\PaymentLoggerContract;
 use Frolax\Payment\Contracts\SupportsStatusQuery;
-use Frolax\Payment\DTOs\CanonicalPayload;
-use Frolax\Payment\DTOs\CanonicalStatusPayload;
-use Frolax\Payment\DTOs\GatewayResult;
+use Frolax\Payment\Data\GatewayResult;
+use Frolax\Payment\Data\Payload;
+use Frolax\Payment\Data\StatusPayload;
 use Frolax\Payment\Exceptions\UnsupportedCapabilityException;
 use Frolax\Payment\Pipeline\PaymentContext;
 use Frolax\Payment\Pipeline\Steps\CheckIdempotency;
@@ -59,7 +59,7 @@ class Payment
      */
     public function charge(array $data): GatewayResult
     {
-        $payload = CanonicalPayload::fromArray($data);
+        $payload = Payload::fromArray($data);
         $gateway = $this->resolveGatewayName();
         $driver = $this->resolveDriver($gateway);
         $credentials = $this->resolveCredentials($gateway);
@@ -151,7 +151,7 @@ class Payment
      */
     public function status(array $data): GatewayResult
     {
-        $payload = CanonicalStatusPayload::fromArray($data);
+        $payload = StatusPayload::fromArray($data);
         $gateway = $this->resolveGatewayName();
         $driver = $this->resolveDriver($gateway);
 

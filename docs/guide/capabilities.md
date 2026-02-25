@@ -1,6 +1,7 @@
 # Capabilities
 
-Capabilities are interfaces that gateway drivers can implement to declare the features they support. The core package never branches on gateway names—instead, it checks which capability interfaces a driver implements.
+Capabilities are interfaces that gateway drivers can implement to declare the features they support. The core package
+never branches on gateway names—instead, it checks which capability interfaces a driver implements.
 
 ## Available Capabilities
 
@@ -40,7 +41,7 @@ interface SupportsWebhookVerification
     /**
      * Verify the webhook signature from the incoming request.
      */
-    public function verifyWebhookSignature(Request $request, CredentialsDTO $credentials): bool;
+    public function verifyWebhookSignature(Request $request, Credentials $credentials): bool;
 
     /**
      * Parse the event type from the webhook payload.
@@ -68,7 +69,7 @@ interface SupportsRefund
     /**
      * Process a refund through the gateway.
      */
-    public function refund(CanonicalRefundPayload $payload, CredentialsDTO $credentials): GatewayResult;
+    public function refund(RefundPayload $payload, Credentials $credentials): GatewayResult;
 }
 ```
 
@@ -96,7 +97,7 @@ interface SupportsStatusQuery
     /**
      * Query the current status of a payment.
      */
-    public function status(CanonicalStatusPayload $payload, CredentialsDTO $credentials): GatewayResult;
+    public function status(StatusPayload $payload, Credentials $credentials): GatewayResult;
 }
 ```
 
@@ -118,12 +119,10 @@ For gateways that support saved payment methods and tokenized payments.
 ```php
 interface SupportsTokenization
 {
-    public function tokenize(CanonicalPayload $payload, CredentialsDTO $credentials): GatewayResult;
-    public function chargeToken(string $token, CanonicalPayload $payload, CredentialsDTO $credentials): GatewayResult;
+    public function tokenize(Payload $payload, Credentials $credentials): GatewayResult;
+    public function chargeToken(string $token, Payload $payload, Credentials $credentials): GatewayResult;
 }
 ```
-
-
 
 ## Checking Capabilities
 
@@ -145,8 +144,8 @@ $driver instanceof SupportsRefund;
 ## Capability Matrix Example
 
 | Gateway | Redirect | Webhooks | Refund | Status | Tokenization |
-|---------|----------|----------|--------|--------|-------------|
-| Stripe | ✅ | ✅ | ✅ | ✅ | 🔜 |
-| bKash | ✅ | ✅ | ✅ | ✅ | ❌ |
-| PayPal | ✅ | ✅ | ✅ | ✅ | 🔜 |
-| Nagad | ✅ | ✅ | ❌ | ✅ | ❌ |
+|---------|----------|----------|--------|--------|--------------|
+| Stripe  | ✅        | ✅        | ✅      | ✅      | 🔜           |
+| bKash   | ✅        | ✅        | ✅      | ✅      | ❌            |
+| PayPal  | ✅        | ✅        | ✅      | ✅      | 🔜           |
+| Nagad   | ✅        | ✅        | ❌      | ✅      | ❌            |

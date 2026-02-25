@@ -1,40 +1,40 @@
 <?php
 
-use Frolax\Payment\DTOs\AddressDTO;
-use Frolax\Payment\DTOs\CanonicalPayload;
-use Frolax\Payment\DTOs\CanonicalRefundPayload;
-use Frolax\Payment\DTOs\CanonicalStatusPayload;
-use Frolax\Payment\DTOs\CredentialsDTO;
-use Frolax\Payment\DTOs\CustomerDTO;
-use Frolax\Payment\DTOs\GatewayResult;
-use Frolax\Payment\DTOs\MoneyDTO;
-use Frolax\Payment\DTOs\OrderDTO;
+use Frolax\Payment\Data\Address;
+use Frolax\Payment\Data\Credentials;
+use Frolax\Payment\Data\Customer;
+use Frolax\Payment\Data\GatewayResult;
+use Frolax\Payment\Data\Money;
+use Frolax\Payment\Data\Order;
+use Frolax\Payment\Data\Payload;
+use Frolax\Payment\Data\RefundPayload;
+use Frolax\Payment\Data\StatusPayload;
 use Frolax\Payment\Enums\PaymentStatus;
 
 // -------------------------------------------------------
-// MoneyDTO
+// Money
 // -------------------------------------------------------
 
-test('MoneyDTO creates from array', function () {
-    $money = MoneyDTO::fromArray(['amount' => 99.99, 'currency' => 'usd']);
+test('Money creates from array', function () {
+    $money = Money::fromArray(['amount' => 99.99, 'currency' => 'usd']);
     expect($money->amount)->toBe(99.99);
     expect($money->currency)->toBe('USD');
 });
 
-test('MoneyDTO rejects negative amount', function () {
-    MoneyDTO::fromArray(['amount' => -1, 'currency' => 'USD']);
+test('Money rejects negative amount', function () {
+    Money::fromArray(['amount' => -1, 'currency' => 'USD']);
 })->throws(InvalidArgumentException::class);
 
-test('MoneyDTO requires amount', function () {
-    MoneyDTO::fromArray(['currency' => 'USD']);
+test('Money requires amount', function () {
+    Money::fromArray(['currency' => 'USD']);
 })->throws(InvalidArgumentException::class);
 
 // -------------------------------------------------------
-// AddressDTO
+// Address
 // -------------------------------------------------------
 
-test('AddressDTO creates from array', function () {
-    $address = AddressDTO::fromArray([
+test('Address creates from array', function () {
+    $address = Address::fromArray([
         'line1' => '123 Main St',
         'city' => 'Dhaka',
         'country' => 'BD',
@@ -44,17 +44,17 @@ test('AddressDTO creates from array', function () {
     expect($address->country)->toBe('BD');
 });
 
-test('AddressDTO returns null for empty array', function () {
-    expect(AddressDTO::fromArray([]))->toBeNull();
-    expect(AddressDTO::fromArray(null))->toBeNull();
+test('Address returns null for empty array', function () {
+    expect(Address::fromArray([]))->toBeNull();
+    expect(Address::fromArray(null))->toBeNull();
 });
 
 // -------------------------------------------------------
-// CustomerDTO
+// Customer
 // -------------------------------------------------------
 
-test('CustomerDTO creates with nested address', function () {
-    $customer = CustomerDTO::fromArray([
+test('Customer creates with nested address', function () {
+    $customer = Customer::fromArray([
         'name' => 'John',
         'email' => 'john@example.com',
         'address' => ['city' => 'NYC'],
@@ -64,11 +64,11 @@ test('CustomerDTO creates with nested address', function () {
 });
 
 // -------------------------------------------------------
-// OrderDTO
+// Order
 // -------------------------------------------------------
 
-test('OrderDTO creates with items', function () {
-    $order = OrderDTO::fromArray([
+test('Order creates with items', function () {
+    $order = Order::fromArray([
         'id' => 'ORD-001',
         'description' => 'Test',
         'items' => [
@@ -81,11 +81,11 @@ test('OrderDTO creates with items', function () {
 });
 
 // -------------------------------------------------------
-// CanonicalPayload
+// Payload
 // -------------------------------------------------------
 
-test('CanonicalPayload creates from full array', function () {
-    $payload = CanonicalPayload::fromArray([
+test('Payload creates from full array', function () {
+    $payload = Payload::fromArray([
         'idempotency_key' => 'test-key-001',
         'order' => ['id' => 'ORD-001', 'description' => 'Test Order'],
         'money' => ['amount' => 100, 'currency' => 'USD'],
@@ -103,10 +103,10 @@ test('CanonicalPayload creates from full array', function () {
     expect($payload->urls->return)->toBe('https://example.com/return');
 });
 
-test('CanonicalPayload auto-generates idempotency key', function () {
+test('Payload auto-generates idempotency key', function () {
     config()->set('payments.idempotency.auto_generate', true);
 
-    $payload = CanonicalPayload::fromArray([
+    $payload = Payload::fromArray([
         'order' => ['id' => 'ORD-002'],
         'money' => ['amount' => 50, 'currency' => 'BDT'],
     ]);
@@ -114,8 +114,8 @@ test('CanonicalPayload auto-generates idempotency key', function () {
     expect($payload->idempotencyKey)->not->toBeEmpty();
 });
 
-test('CanonicalPayload flattens to dot notation', function () {
-    $payload = CanonicalPayload::fromArray([
+test('Payload flattens to dot notation', function () {
+    $payload = Payload::fromArray([
         'idempotency_key' => 'key-001',
         'order' => ['id' => 'ORD-001'],
         'money' => ['amount' => 100, 'currency' => 'USD'],
@@ -127,18 +127,18 @@ test('CanonicalPayload flattens to dot notation', function () {
     expect($dot)->toHaveKey('money.currency', 'USD');
 });
 
-test('CanonicalPayload requires order', function () {
-    CanonicalPayload::fromArray([
+test('Payload requires order', function () {
+    Payload::fromArray([
         'money' => ['amount' => 100, 'currency' => 'USD'],
     ]);
 })->throws(InvalidArgumentException::class);
 
 // -------------------------------------------------------
-// CanonicalRefundPayload
+// RefundPayload
 // -------------------------------------------------------
 
-test('CanonicalRefundPayload creates from array', function () {
-    $payload = CanonicalRefundPayload::fromArray([
+test('RefundPayload creates from array', function () {
+    $payload = RefundPayload::fromArray([
         'payment_id' => 'PAY-001',
         'money' => ['amount' => 50, 'currency' => 'USD'],
         'reason' => 'Customer request',
@@ -150,11 +150,11 @@ test('CanonicalRefundPayload creates from array', function () {
 });
 
 // -------------------------------------------------------
-// CanonicalStatusPayload
+// StatusPayload
 // -------------------------------------------------------
 
-test('CanonicalStatusPayload creates from array', function () {
-    $payload = CanonicalStatusPayload::fromArray([
+test('StatusPayload creates from array', function () {
+    $payload = StatusPayload::fromArray([
         'payment_id' => 'PAY-001',
         'gateway_reference' => 'GW-REF-001',
     ]);
@@ -164,11 +164,11 @@ test('CanonicalStatusPayload creates from array', function () {
 });
 
 // -------------------------------------------------------
-// CredentialsDTO
+// Credentials
 // -------------------------------------------------------
 
-test('CredentialsDTO masks credentials in safe array', function () {
-    $creds = new CredentialsDTO(
+test('Credentials masks credentials in safe array', function () {
+    $creds = new Credentials(
         gateway: 'stripe',
         profile: 'test',
         credentials: ['key' => 'sk_test_xxx', 'secret' => 'whsec_xxx'],

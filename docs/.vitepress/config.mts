@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitepress'
+import { defineConfig } from 'vitepress';
 
 export default defineConfig({
     title: 'Laravel Payments',
@@ -85,7 +85,7 @@ export default defineConfig({
                     text: 'API Reference',
                     items: [
                         { text: 'Contracts', link: '/api/contracts' },
-                        { text: 'DTOs', link: '/api/dtos' },
+                        { text: 'Data', link: '/api/data' },
                         { text: 'Enums', link: '/api/enums' },
                         { text: 'Events', link: '/api/events' },
                         { text: 'Exceptions', link: '/api/exceptions' },
@@ -96,9 +96,7 @@ export default defineConfig({
             ],
         },
 
-        socialLinks: [
-            { icon: 'github', link: 'https://github.com/frolaxhq/laravel-payments' },
-        ],
+        socialLinks: [{ icon: 'github', link: 'https://github.com/frolaxhq/laravel-payments' }],
 
         editLink: {
             pattern: 'https://github.com/frolaxhq/laravel-payments-docs/edit/main/:path',
@@ -114,4 +112,4 @@ export default defineConfig({
             provider: 'local',
         },
     },
-})
+});

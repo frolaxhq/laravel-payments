@@ -2,7 +2,7 @@
 
 namespace Frolax\Payment\Contracts;
 
-use Frolax\Payment\DTOs\GatewayResult;
+use Frolax\Payment\Data\GatewayResult;
 
 interface SupportsHostedRedirect
 {

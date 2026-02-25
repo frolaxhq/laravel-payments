@@ -2,29 +2,29 @@
 
 namespace Frolax\Payment\Contracts;
 
-use Frolax\Payment\DTOs\CanonicalPayload;
-use Frolax\Payment\DTOs\CredentialsDTO;
-use Frolax\Payment\DTOs\GatewayResult;
+use Frolax\Payment\Data\Credentials;
+use Frolax\Payment\Data\GatewayResult;
+use Frolax\Payment\Data\Payload;
 
 interface SupportsTokenization
 {
     /**
      * Tokenize a payment method for future use.
      */
-    public function tokenize(CanonicalPayload $payload, CredentialsDTO $credentials): GatewayResult;
+    public function tokenize(Payload $payload, Credentials $credentials): GatewayResult;
 
     /**
      * Charge a previously saved token.
      */
-    public function chargeToken(string $token, CanonicalPayload $payload, CredentialsDTO $credentials): GatewayResult;
+    public function chargeToken(string $token, Payload $payload, Credentials $credentials): GatewayResult;
 
     /**
      * Delete a stored token from the gateway.
      */
-    public function deleteToken(string $token, CredentialsDTO $credentials): GatewayResult;
+    public function deleteToken(string $token, Credentials $credentials): GatewayResult;
 
     /**
      * List saved payment methods for a customer.
      */
-    public function listTokens(string $customerId, CredentialsDTO $credentials): array;
+    public function listTokens(string $customerId, Credentials $credentials): array;
 }

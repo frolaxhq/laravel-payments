@@ -184,9 +184,9 @@ class MakeGatewayCommand extends Command
         $namespace = $file->addNamespace($namespaceName);
 
         $namespace->addUse('Frolax\Payment\Contracts\GatewayDriverContract');
-        $namespace->addUse('Frolax\Payment\DTOs\CanonicalPayload');
-        $namespace->addUse('Frolax\Payment\DTOs\CredentialsDTO');
-        $namespace->addUse('Frolax\Payment\DTOs\GatewayResult');
+        $namespace->addUse('Frolax\Payment\Data\Payload');
+        $namespace->addUse('Frolax\Payment\Data\Credentials');
+        $namespace->addUse('Frolax\Payment\Data\GatewayResult');
         $namespace->addUse('Frolax\Payment\Enums\PaymentStatus');
         $namespace->addUse('Illuminate\Http\Request');
 
@@ -212,7 +212,7 @@ class MakeGatewayCommand extends Command
 
         $class->addProperty('credentials')
             ->setProtected()
-            ->setType('Frolax\Payment\DTOs\CredentialsDTO')
+            ->setType('Frolax\Payment\Data\Credentials')
             ->setNullable()
             ->setValue(null);
 
@@ -226,7 +226,7 @@ class MakeGatewayCommand extends Command
             ->setReturnType('static')
             ->setBody("\$this->credentials = \$credentials;\n\nreturn \$this;")
             ->addParameter('credentials')
-            ->setType('Frolax\Payment\DTOs\CredentialsDTO');
+            ->setType('Frolax\Payment\Data\Credentials');
 
         $class->addMethod('capabilities')
             ->setPublic()
@@ -235,10 +235,10 @@ class MakeGatewayCommand extends Command
 
         $create = $class->addMethod('create')
             ->setPublic()
-            ->setReturnType('Frolax\Payment\DTOs\GatewayResult');
+            ->setReturnType('Frolax\Payment\Data\GatewayResult');
 
-        $create->addParameter('payload')->setType('Frolax\Payment\DTOs\CanonicalPayload');
-        $create->addParameter('credentials')->setType('Frolax\Payment\DTOs\CredentialsDTO');
+        $create->addParameter('payload')->setType('Frolax\Payment\Data\Payload');
+        $create->addParameter('credentials')->setType('Frolax\Payment\Data\Credentials');
 
         $create->setBody(<<<PHP
 // TODO: Map canonical payload -> {$displayName} API request
@@ -259,10 +259,10 @@ PHP
 
         $verify = $class->addMethod('verify')
             ->setPublic()
-            ->setReturnType('Frolax\Payment\DTOs\GatewayResult');
+            ->setReturnType('Frolax\Payment\Data\GatewayResult');
 
         $verify->addParameter('request')->setType('Illuminate\Http\Request');
-        $verify->addParameter('credentials')->setType('Frolax\Payment\DTOs\CredentialsDTO');
+        $verify->addParameter('credentials')->setType('Frolax\Payment\Data\Credentials');
 
         $verify->setBody(<<<PHP
 // TODO: Parse {$displayName} callback/return request
@@ -289,7 +289,7 @@ PHP
                 ->setReturnType('?string')
                 ->setBody('return $result->redirectUrl;')
                 ->addParameter('result')
-                ->setType('Frolax\Payment\DTOs\GatewayResult');
+                ->setType('Frolax\Payment\Data\GatewayResult');
         }
 
         if (in_array('webhook', $capabilities)) {
@@ -299,7 +299,7 @@ PHP
                 ->setBody("// TODO: Implement webhook signature verification\n// \$signature = \$request->header('X-Signature');\n// \$webhookSecret = \$credentials->get('webhook_secret');\n\nreturn false;");
 
             $verifyWebhook->addParameter('request')->setType('Illuminate\Http\Request');
-            $verifyWebhook->addParameter('credentials')->setType('Frolax\Payment\DTOs\CredentialsDTO');
+            $verifyWebhook->addParameter('credentials')->setType('Frolax\Payment\Data\Credentials');
 
             $class->addMethod('parseWebhookEventType')
                 ->setPublic()
@@ -317,21 +317,21 @@ PHP
         if (in_array('refund', $capabilities)) {
             $refund = $class->addMethod('refund')
                 ->setPublic()
-                ->setReturnType('Frolax\Payment\DTOs\GatewayResult')
+                ->setReturnType('Frolax\Payment\Data\GatewayResult')
                 ->setBody("// TODO: Implement refund via gateway API\n\nreturn new GatewayResult(\n    status: PaymentStatus::Refunded,\n    gatewayResponse: [],\n);");
 
-            $refund->addParameter('payload')->setType('Frolax\Payment\DTOs\CanonicalRefundPayload');
-            $refund->addParameter('credentials')->setType('Frolax\Payment\DTOs\CredentialsDTO');
+            $refund->addParameter('payload')->setType('Frolax\Payment\Data\RefundPayload');
+            $refund->addParameter('credentials')->setType('Frolax\Payment\Data\Credentials');
         }
 
         if (in_array('status', $capabilities)) {
             $status = $class->addMethod('status')
                 ->setPublic()
-                ->setReturnType('Frolax\Payment\DTOs\GatewayResult')
+                ->setReturnType('Frolax\Payment\Data\GatewayResult')
                 ->setBody("// TODO: Query payment status from gateway API\n\nreturn new GatewayResult(\n    status: PaymentStatus::Pending,\n    gatewayResponse: [],\n);");
 
-            $status->addParameter('payload')->setType('Frolax\Payment\DTOs\CanonicalStatusPayload');
-            $status->addParameter('credentials')->setType('Frolax\Payment\DTOs\CredentialsDTO');
+            $status->addParameter('payload')->setType('Frolax\Payment\Data\StatusPayload');
+            $status->addParameter('credentials')->setType('Frolax\Payment\Data\Credentials');
         }
     }
 
@@ -441,9 +441,9 @@ PHP
         // Actually, since Pest is basically top-level PHP, we can just use the Namespace object to add code.
 
         $namespace = $file->addNamespace(''); // No namespace for Pest tests usually
-        $namespace->addUse('Frolax\Payment\DTOs\CanonicalPayload');
-        $namespace->addUse('Frolax\Payment\DTOs\CredentialsDTO');
-        $namespace->addUse('Frolax\Payment\DTOs\GatewayResult');
+        $namespace->addUse('Frolax\Payment\Data\Payload');
+        $namespace->addUse('Frolax\Payment\Data\Credentials');
+        $namespace->addUse('Frolax\Payment\Data\GatewayResult');
         $namespace->addUse("{$namespaceName}\\{$className}Driver");
 
         $content = (string) $file;
@@ -462,13 +462,13 @@ test('{$key} driver reports capabilities', function () {
 test('{$key} driver can create a payment', function () {
     \$driver = new {$className}Driver();
 
-    \$payload = CanonicalPayload::fromArray([
+    \$payload = Payload::fromArray([
         'idempotency_key' => 'test-key-001',
         'order' => ['id' => 'ORD-001', 'description' => 'Test Order'],
         'money' => ['amount' => 100, 'currency' => 'USD'],
     ]);
 
-    \$credentials = new CredentialsDTO(
+    \$credentials = new Credentials(
         gateway: '{$key}',
         profile: 'test',
         credentials: ['key' => 'test_key', 'secret' => 'test_secret'],

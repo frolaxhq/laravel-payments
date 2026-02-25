@@ -3,7 +3,7 @@
 namespace Frolax\Payment\Facades;
 
 use Frolax\Payment\Contracts\GatewayDriverContract;
-use Frolax\Payment\DTOs\GatewayResult;
+use Frolax\Payment\Data\GatewayResult;
 use Frolax\Payment\Testing\PaymentFake;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Facade;

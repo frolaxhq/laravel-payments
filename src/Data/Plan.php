@@ -1,13 +1,14 @@
 <?php
 
-namespace Frolax\Payment\DTOs;
+namespace Frolax\Payment\Data;
 
-final readonly class PlanDTO
+final readonly class Plan
 {
     public function __construct(
-        public string $id,
+        public string $priceId,
+        public string $planId,
         public string $name,
-        public MoneyDTO $money,
+        public Money $money,
         public string $interval,
         public int $intervalCount = 1,
         public ?string $description = null,
@@ -19,9 +20,10 @@ final readonly class PlanDTO
     public static function fromArray(array $data): static
     {
         return new self(
-            id: $data['id'],
+            priceId: $data['priceId'],
+            planId: $data['planId'],
             name: $data['name'],
-            money: MoneyDTO::fromArray($data['money']),
+            money: Money::fromArray($data['money']),
             interval: $data['interval'],
             intervalCount: $data['interval_count'] ?? 1,
             description: $data['description'] ?? null,
@@ -34,7 +36,8 @@ final readonly class PlanDTO
     public function toArray(): array
     {
         return [
-            'id' => $this->id,
+            'priceId' => $this->priceId,
+            'planId' => $this->planId,
             'name' => $this->name,
             'money' => $this->money->toArray(),
             'interval' => $this->interval,

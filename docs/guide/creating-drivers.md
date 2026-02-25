@@ -1,6 +1,7 @@
 # Creating Gateway Drivers
 
-Build a custom gateway driver for any payment provider. Drivers are simple PHP classes that implement the `GatewayDriverContract` interface.
+Build a custom gateway driver for any payment provider. Drivers are simple PHP classes that implement the
+`GatewayDriverContract` interface.
 
 ## Generate a Driver Skeleton
 
@@ -36,9 +37,9 @@ namespace App\Payment\Gateways\Bkash;
 use Frolax\Payment\Contracts\GatewayDriverContract;
 use Frolax\Payment\Contracts\SupportsHostedRedirect;
 use Frolax\Payment\Contracts\SupportsWebhookVerification;
-use Frolax\Payment\DTOs\CanonicalPayload;
-use Frolax\Payment\DTOs\CredentialsDTO;
-use Frolax\Payment\DTOs\GatewayResult;
+use Frolax\Payment\Data\Payload;
+use Frolax\Payment\Data\Credentials;
+use Frolax\Payment\Data\GatewayResult;
 use Frolax\Payment\Enums\PaymentStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -48,14 +49,14 @@ class BkashDriver implements
     SupportsHostedRedirect,
     SupportsWebhookVerification
 {
-    protected ?CredentialsDTO $credentials = null;
+    protected ?Credentials $credentials = null;
 
     public function name(): string
     {
         return 'bkash';
     }
 
-    public function setCredentials(CredentialsDTO $credentials): static
+    public function setCredentials(Credentials $credentials): static
     {
         $this->credentials = $credentials;
         return $this;
@@ -75,7 +76,7 @@ class BkashDriver implements
 Map the canonical payload to the gateway's API:
 
 ```php
-public function create(CanonicalPayload $payload, CredentialsDTO $credentials): GatewayResult
+public function create(Payload $payload, Credentials $credentials): GatewayResult
 {
     // 1. Authenticate with the gateway
     $token = $this->getAuthToken($credentials);
@@ -116,7 +117,7 @@ public function create(CanonicalPayload $payload, CredentialsDTO $credentials): 
 Verify payment status from a callback or return request:
 
 ```php
-public function verify(Request $request, CredentialsDTO $credentials): GatewayResult
+public function verify(Request $request, Credentials $credentials): GatewayResult
 {
     $paymentId = $request->input('paymentID');
     $token = $this->getAuthToken($credentials);
@@ -152,7 +153,7 @@ public function getRedirectUrl(GatewayResult $result): ?string
 }
 
 // SupportsWebhookVerification
-public function verifyWebhookSignature(Request $request, CredentialsDTO $credentials): bool
+public function verifyWebhookSignature(Request $request, Credentials $credentials): bool
 {
     $signature = $request->header('X-Bkash-Signature');
     $webhookSecret = $credentials->get('webhook_secret');
@@ -218,12 +219,12 @@ test('bkash driver creates a payment', function () {
 
     $driver = new BkashDriver();
 
-    $payload = CanonicalPayload::fromArray([
+    $payload = Payload::fromArray([
         'order' => ['id' => 'ORD-001'],
         'money' => ['amount' => 500, 'currency' => 'BDT'],
     ]);
 
-    $credentials = new CredentialsDTO(
+    $credentials = new Credentials(
         gateway: 'bkash',
         profile: 'test',
         credentials: ['app_key' => 'key', 'app_secret' => 'secret'],

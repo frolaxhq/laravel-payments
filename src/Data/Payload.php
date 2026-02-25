@@ -1,18 +1,18 @@
 <?php
 
-namespace Frolax\Payment\DTOs;
+namespace Frolax\Payment\Data;
 
 use Illuminate\Support\Str;
 
-final readonly class CanonicalPayload
+final readonly class Payload
 {
     public function __construct(
         public string $idempotencyKey,
-        public OrderDTO $order,
-        public MoneyDTO $money,
-        public ?CustomerDTO $customer = null,
-        public ?UrlsDTO $urls = null,
-        public ?ContextDTO $context = null,
+        public Order $order,
+        public Money $money,
+        public ?Customer $customer = null,
+        public ?Urls $urls = null,
+        public ?Context $context = null,
         public array $metadata = [],
         public array $extra = [],
     ) {}
@@ -28,11 +28,11 @@ final readonly class CanonicalPayload
 
         return new self(
             idempotencyKey: $idempotencyKey,
-            order: OrderDTO::fromArray($data['order'] ?? throw new \InvalidArgumentException('Order is required.')),
-            money: MoneyDTO::fromArray($data['money'] ?? throw new \InvalidArgumentException('Money is required.')),
-            customer: CustomerDTO::fromArray($data['customer'] ?? null),
-            urls: UrlsDTO::fromArray($data['urls'] ?? null),
-            context: ContextDTO::fromArray($data['context'] ?? null),
+            order: Order::fromArray($data['order'] ?? throw new \InvalidArgumentException('Order is required.')),
+            money: Money::fromArray($data['money'] ?? throw new \InvalidArgumentException('Money is required.')),
+            customer: Customer::fromArray($data['customer'] ?? null),
+            urls: Urls::fromArray($data['urls'] ?? null),
+            context: Context::fromArray($data['context'] ?? null),
             metadata: $data['metadata'] ?? [],
             extra: $data['extra'] ?? [],
         );

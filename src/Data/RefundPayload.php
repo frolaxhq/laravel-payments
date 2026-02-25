@@ -1,12 +1,12 @@
 <?php
 
-namespace Frolax\Payment\DTOs;
+namespace Frolax\Payment\Data;
 
-final readonly class CanonicalRefundPayload
+final readonly class RefundPayload
 {
     public function __construct(
         public string $paymentId,
-        public MoneyDTO $money,
+        public Money $money,
         public ?string $reason = null,
         public ?string $idempotencyKey = null,
         public array $metadata = [],
@@ -17,7 +17,7 @@ final readonly class CanonicalRefundPayload
     {
         return new self(
             paymentId: $data['payment_id'] ?? throw new \InvalidArgumentException('payment_id is required.'),
-            money: MoneyDTO::fromArray($data['money'] ?? throw new \InvalidArgumentException('Money is required.')),
+            money: Money::fromArray($data['money'] ?? throw new \InvalidArgumentException('Money is required.')),
             reason: $data['reason'] ?? null,
             idempotencyKey: $data['idempotency_key'] ?? (string) \Illuminate\Support\Str::ulid(),
             metadata: $data['metadata'] ?? [],

@@ -1,6 +1,7 @@
 # Gateway Drivers
 
-Gateway drivers are the bridge between the canonical payload and a specific payment gateway's API. Each driver implements `GatewayDriverContract` and translates the standard payload into gateway-specific requests.
+Gateway drivers are the bridge between the canonical payload and a specific payment gateway's API. Each driver
+implements `GatewayDriverContract` and translates the standard payload into gateway-specific requests.
 
 ## Driver Contract
 
@@ -17,17 +18,17 @@ interface GatewayDriverContract
     /**
      * Create a payment from the canonical payload.
      */
-    public function create(CanonicalPayload $payload, CredentialsDTO $credentials): GatewayResult;
+    public function create(Payload $payload, Credentials $credentials): GatewayResult;
 
     /**
      * Verify a payment from a gateway callback/return request.
      */
-    public function verify(Request $request, CredentialsDTO $credentials): GatewayResult;
+    public function verify(Request $request, Credentials $credentials): GatewayResult;
 
     /**
      * Set active credentials on the driver.
      */
-    public function setCredentials(CredentialsDTO $credentials): static;
+    public function setCredentials(Credentials $credentials): static;
 
     /**
      * List capabilities this driver supports.

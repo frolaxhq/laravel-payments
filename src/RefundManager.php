@@ -6,8 +6,8 @@ use Frolax\Payment\Concerns\HasGatewayContext;
 use Frolax\Payment\Contracts\CredentialsRepositoryContract;
 use Frolax\Payment\Contracts\PaymentLoggerContract;
 use Frolax\Payment\Contracts\SupportsRefund;
-use Frolax\Payment\DTOs\CanonicalRefundPayload;
-use Frolax\Payment\DTOs\GatewayResult;
+use Frolax\Payment\Data\GatewayResult;
+use Frolax\Payment\Data\RefundPayload;
 use Frolax\Payment\Enums\RefundStatus;
 use Frolax\Payment\Events\PaymentRefunded;
 use Frolax\Payment\Events\PaymentRefundRequested;
@@ -49,7 +49,7 @@ class RefundManager
      */
     public function refund(array $data): GatewayResult
     {
-        $payload = CanonicalRefundPayload::fromArray($data);
+        $payload = RefundPayload::fromArray($data);
         $gateway = $this->resolveGatewayName();
         $driver = $this->resolveDriver($gateway);
 

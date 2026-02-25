@@ -3,7 +3,7 @@
 namespace Frolax\Payment\Credentials;
 
 use Frolax\Payment\Contracts\CredentialsRepositoryContract;
-use Frolax\Payment\DTOs\CredentialsDTO;
+use Frolax\Payment\Data\Credentials;
 
 class CompositeCredentialsRepository implements CredentialsRepositoryContract
 {
@@ -22,7 +22,7 @@ class CompositeCredentialsRepository implements CredentialsRepositoryContract
         ]);
     }
 
-    public function get(string $gateway, string $profile, array $context = []): ?CredentialsDTO
+    public function get(string $gateway, string $profile, array $context = []): ?Credentials
     {
         foreach ($this->repositories as $repo) {
             $credentials = $repo->get($gateway, $profile, $context);

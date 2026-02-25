@@ -1,15 +1,15 @@
 <?php
 
-namespace Frolax\Payment\DTOs;
+namespace Frolax\Payment\Data;
 
-final readonly class CanonicalSubscriptionPayload
+final readonly class SubscriptionPayload
 {
     public function __construct(
         public string $idempotencyKey,
-        public PlanDTO $plan,
-        public ?CustomerDTO $customer = null,
-        public ?UrlsDTO $urls = null,
-        public ?ContextDTO $context = null,
+        public Plan $plan,
+        public ?Customer $customer = null,
+        public ?Urls $urls = null,
+        public ?Context $context = null,
         public ?int $trialDays = null,
         public ?string $couponCode = null,
         public ?int $quantity = 1,
@@ -20,19 +20,19 @@ final readonly class CanonicalSubscriptionPayload
 
     public static function fromArray(array $data): static
     {
-        $plan = PlanDTO::fromArray($data['plan']);
+        $plan = Plan::fromArray($data['plan']);
 
         return new self(
-            idempotencyKey: $data['idempotency_key'] ?? hash('sha256', $plan->id.($data['customer']['email'] ?? '').time()),
+            idempotencyKey: $data['idempotency_key'] ?? hash('sha256', $plan->priceId.($data['customer']['email'] ?? '').time()),
             plan: $plan,
-            customer: isset($data['customer']) ? CustomerDTO::fromArray($data['customer']) : null,
-            urls: isset($data['urls']) ? UrlsDTO::fromArray($data['urls']) : null,
-            context: isset($data['context']) ? ContextDTO::fromArray($data['context']) : null,
+            customer: isset($data['customer']) ? Customer::fromArray($data['customer']) : null,
+            urls: isset($data['urls']) ? Urls::fromArray($data['urls']) : null,
+            context: isset($data['context']) ? Context::fromArray($data['context']) : null,
             trialDays: $data['trial_days'] ?? $plan->trialDays,
             couponCode: $data['coupon_code'] ?? null,
             quantity: $data['quantity'] ?? 1,
             items: array_map(
-                fn (array $item) => SubscriptionItemDTO::fromArray($item),
+                fn (array $item) => SubscriptionItem::fromArray($item),
                 $data['items'] ?? [],
             ),
             metadata: $data['metadata'] ?? [],

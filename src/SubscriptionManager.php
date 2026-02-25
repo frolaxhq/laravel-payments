@@ -6,8 +6,8 @@ use Frolax\Payment\Concerns\HasGatewayContext;
 use Frolax\Payment\Contracts\CredentialsRepositoryContract;
 use Frolax\Payment\Contracts\PaymentLoggerContract;
 use Frolax\Payment\Contracts\SupportsRecurring;
-use Frolax\Payment\DTOs\CanonicalSubscriptionPayload;
-use Frolax\Payment\DTOs\GatewayResult;
+use Frolax\Payment\Data\SubscriptionPayload;
+use Frolax\Payment\Data\GatewayResult;
 use Frolax\Payment\Enums\SubscriptionStatus;
 use Frolax\Payment\Events\SubscriptionCancelled;
 use Frolax\Payment\Events\SubscriptionCreated;
@@ -51,7 +51,7 @@ class SubscriptionManager
      */
     public function create(array $data): GatewayResult
     {
-        $payload = CanonicalSubscriptionPayload::fromArray($data);
+        $payload = SubscriptionPayload::fromArray($data);
         $gateway = $this->resolveGatewayName();
         $driver = $this->resolveDriver($gateway);
 
@@ -69,7 +69,8 @@ class SubscriptionManager
             'tenant_id' => $this->context['tenant_id'] ?? null,
             'customer_id' => $payload->customer?->email,
             'customer_email' => $payload->customer?->email,
-            'plan_id' => $payload->plan->id,
+            'price_id' => $payload->plan->priceId,
+            'plan_id' => $payload->plan->planId,
             'plan_name' => $payload->plan->name,
             'status' => $result->isSuccessful() ? SubscriptionStatus::Active : SubscriptionStatus::Incomplete,
             'gateway_subscription_id' => $result->gatewayReference,
@@ -92,7 +93,8 @@ class SubscriptionManager
         SubscriptionCreated::dispatch(
             $subscription->id,
             $gateway,
-            $payload->plan->id,
+            $payload->plan->priceId,
+            $payload->plan->planId,
             $payload->plan->money->amount,
             $payload->plan->money->currency,
             $result->gatewayReference,

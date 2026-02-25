@@ -1,11 +1,11 @@
 <?php
 
-namespace Frolax\Payment\DTOs;
+namespace Frolax\Payment\Data;
 
-final readonly class OrderDTO
+final readonly class Order
 {
     /**
-     * @param  OrderItemDTO[]  $items
+     * @param  OrderItem[]  $items
      */
     public function __construct(
         public string $id,
@@ -20,7 +20,7 @@ final readonly class OrderDTO
         }
 
         $items = array_map(
-            fn (array $item) => OrderItemDTO::fromArray($item),
+            fn (array $item) => OrderItem::fromArray($item),
             $data['items'] ?? []
         );
 
@@ -36,7 +36,7 @@ final readonly class OrderDTO
         return array_filter([
             'id' => $this->id,
             'description' => $this->description,
-            'items' => array_map(fn (OrderItemDTO $item) => $item->toArray(), $this->items),
+            'items' => array_map(fn (OrderItem $item) => $item->toArray(), $this->items),
         ], fn ($v) => $v !== null && $v !== []);
     }
 }

@@ -1,6 +1,7 @@
 # Credentials
 
-Laravel Payments provides a flexible, production-grade credential management system that supports environment variables, database storage, and a composite strategy combining both.
+Laravel Payments provides a flexible, production-grade credential management system that supports environment variables,
+database storage, and a composite strategy combining both.
 
 ## Storage Modes
 
@@ -46,13 +47,13 @@ For multi-tenant SaaS applications, store credentials in the `payment_gateway_cr
 
 ### Features
 
-| Feature | Description |
-|---------|-------------|
-| **Tenant Isolation** | Each tenant can have their own gateway credentials |
-| **Time Windows** | Credentials with `effective_from` / `effective_to` for scheduled rotation |
-| **Priority Ordering** | Multiple credential sets resolved by priority (highest first) |
-| **Encryption** | All credentials stored encrypted via Laravel's `EncryptedCast` |
-| **Profiles** | Separate `test` and `live` credential sets |
+| Feature               | Description                                                               |
+|-----------------------|---------------------------------------------------------------------------|
+| **Tenant Isolation**  | Each tenant can have their own gateway credentials                        |
+| **Time Windows**      | Credentials with `effective_from` / `effective_to` for scheduled rotation |
+| **Priority Ordering** | Multiple credential sets resolved by priority (highest first)             |
+| **Encryption**        | All credentials stored encrypted via Laravel's `EncryptedCast`            |
+| **Profiles**          | Separate `test` and `live` credential sets                                |
 
 ### Storing Credentials
 
@@ -145,9 +146,9 @@ Payment::gateway('stripe')
     ->create($data);
 ```
 
-## CredentialsDTO
+## Credentials
 
-All resolved credentials are wrapped in a `CredentialsDTO`:
+All resolved credentials are wrapped in a `Credentials`:
 
 ```php
 $creds = $credentialsRepo->get('stripe', 'test');

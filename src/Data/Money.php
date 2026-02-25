@@ -1,10 +1,10 @@
 <?php
 
-namespace Frolax\Payment\DTOs;
+namespace Frolax\Payment\Data;
 
 use InvalidArgumentException;
 
-final readonly class MoneyDTO
+final readonly class Money
 {
     public function __construct(
         public int|float $amount,

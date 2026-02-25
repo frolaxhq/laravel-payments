@@ -3,9 +3,15 @@
 namespace Frolax\Payment\Testing;
 
 use Frolax\Payment\Contracts\GatewayDriverContract;
-use Frolax\Payment\DTOs\CanonicalPayload;
-use Frolax\Payment\DTOs\CredentialsDTO;
-use Frolax\Payment\DTOs\GatewayResult;
+use Frolax\Payment\Contracts\SupportsRecurring;
+use Frolax\Payment\Contracts\SupportsRefund;
+use Frolax\Payment\Contracts\SupportsStatusQuery;
+use Frolax\Payment\Data\SubscriptionPayload;
+use Frolax\Payment\Data\Credentials;
+use Frolax\Payment\Data\GatewayResult;
+use Frolax\Payment\Data\Payload;
+use Frolax\Payment\Data\RefundPayload;
+use Frolax\Payment\Data\StatusPayload;
 use Frolax\Payment\Enums\PaymentStatus;
 use Illuminate\Http\Request;
 
@@ -14,7 +20,7 @@ use Illuminate\Http\Request;
  *
  * Records all calls and can be configured to return specific results.
  */
-class FakeDriver implements GatewayDriverContract
+class FakeDriver implements GatewayDriverContract, SupportsRecurring, SupportsRefund, SupportsStatusQuery
 {
     protected ?GatewayResult $pendingResult = null;
 
@@ -26,9 +32,6 @@ class FakeDriver implements GatewayDriverContract
         return 'fake';
     }
 
-    /**
-     * Configure the result that will be returned for the next call.
-     */
     public function willReturn(GatewayResult $result): static
     {
         $this->pendingResult = $result;
@@ -36,9 +39,6 @@ class FakeDriver implements GatewayDriverContract
         return $this;
     }
 
-    /**
-     * Shortcut: configure a successful result.
-     */
     public function willSucceed(string $gatewayReference = 'FAKE-REF-001'): static
     {
         return $this->willReturn(new GatewayResult(
@@ -47,9 +47,6 @@ class FakeDriver implements GatewayDriverContract
         ));
     }
 
-    /**
-     * Shortcut: configure a pending/redirect result.
-     */
     public function willRedirectTo(string $url, string $gatewayReference = 'FAKE-REF-001'): static
     {
         return $this->willReturn(new GatewayResult(
@@ -59,9 +56,6 @@ class FakeDriver implements GatewayDriverContract
         ));
     }
 
-    /**
-     * Shortcut: configure a failing result.
-     */
     public function willFail(string $errorMessage = 'Fake payment failed'): static
     {
         return $this->willReturn(new GatewayResult(
@@ -70,46 +64,98 @@ class FakeDriver implements GatewayDriverContract
         ));
     }
 
-    public function create(CanonicalPayload $payload, CredentialsDTO $credentials): GatewayResult
+    public function alwaysFail(string $errorMessage = 'Fake payment failed'): static
+    {
+        $this->willFail($errorMessage);
+
+        return $this;
+    }
+
+    public function create(Payload $payload, Credentials $credentials): GatewayResult
     {
         $this->calls[] = ['method' => 'create', 'args' => compact('payload', 'credentials')];
 
         return $this->resolveResult();
     }
 
-    public function verify(Request $request, CredentialsDTO $credentials): GatewayResult
+    public function verify(Request $request, Credentials $credentials): GatewayResult
     {
         $this->calls[] = ['method' => 'verify', 'args' => compact('request', 'credentials')];
 
         return $this->resolveResult();
     }
 
-    public function setCredentials(CredentialsDTO $credentials): static
+    public function status(StatusPayload $payload, Credentials $credentials): GatewayResult
+    {
+        $this->calls[] = ['method' => 'status', 'args' => compact('payload', 'credentials')];
+
+        return $this->resolveResult();
+    }
+
+    public function refund(RefundPayload $payload, Credentials $credentials): GatewayResult
+    {
+        $this->calls[] = ['method' => 'refund', 'args' => compact('payload', 'credentials')];
+
+        return $this->resolveResult();
+    }
+
+    public function createSubscription(SubscriptionPayload $payload, Credentials $credentials): GatewayResult
+    {
+        $this->calls[] = ['method' => 'createSubscription', 'args' => compact('payload', 'credentials')];
+
+        return $this->resolveResult();
+    }
+
+    public function updateSubscription(string $subscriptionId, array $data, Credentials $credentials): GatewayResult
+    {
+        $this->calls[] = ['method' => 'updateSubscription', 'args' => compact('subscriptionId', 'data', 'credentials')];
+
+        return $this->resolveResult();
+    }
+
+    public function pauseSubscription(string $subscriptionId, Credentials $credentials): GatewayResult
+    {
+        $this->calls[] = ['method' => 'pauseSubscription', 'args' => compact('subscriptionId', 'credentials')];
+
+        return $this->resolveResult();
+    }
+
+    public function resumeSubscription(string $subscriptionId, Credentials $credentials): GatewayResult
+    {
+        $this->calls[] = ['method' => 'resumeSubscription', 'args' => compact('subscriptionId', 'credentials')];
+
+        return $this->resolveResult();
+    }
+
+    public function cancelSubscription(string $subscriptionId, Credentials $credentials): GatewayResult
+    {
+        $this->calls[] = ['method' => 'cancelSubscription', 'args' => compact('subscriptionId', 'credentials')];
+
+        return $this->resolveResult();
+    }
+
+    public function getSubscriptionStatus(string $subscriptionId, Credentials $credentials): GatewayResult
+    {
+        $this->calls[] = ['method' => 'getSubscriptionStatus', 'args' => compact('subscriptionId', 'credentials')];
+
+        return $this->resolveResult();
+    }
+
+    public function setCredentials(Credentials $credentials): static
     {
         return $this;
     }
 
-    /**
-     * Get all recorded calls.
-     *
-     * @return array<array{method: string, args: array}>
-     */
     public function calls(): array
     {
         return $this->calls;
     }
 
-    /**
-     * Get calls for a specific method.
-     */
     public function callsTo(string $method): array
     {
         return array_values(array_filter($this->calls, fn ($call) => $call['method'] === $method));
     }
 
-    /**
-     * Assert that a method was called a specific number of times.
-     */
     public function assertCalledTimes(string $method, int $times): void
     {
         $actual = count($this->callsTo($method));
@@ -121,9 +167,6 @@ class FakeDriver implements GatewayDriverContract
         );
     }
 
-    /**
-     * Assert that a method was never called.
-     */
     public function assertNotCalled(string $method): void
     {
         $this->assertCalledTimes($method, 0);

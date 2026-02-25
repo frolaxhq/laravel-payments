@@ -1,8 +1,8 @@
 <?php
 
-namespace Frolax\Payment\DTOs;
+namespace Frolax\Payment\Data;
 
-final readonly class CanonicalStatusPayload
+final readonly class StatusPayload
 {
     public function __construct(
         public string $paymentId,
