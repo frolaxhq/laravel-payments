@@ -23,17 +23,17 @@ test('registry registers and resolves a gateway', function () {
             return 'dummy';
         }
 
-        public function create(Payload $p, Credentials $c): GatewayResult
+        public function create(Payload $payload, Credentials $credentials): GatewayResult
         {
             return new GatewayResult(status: PaymentStatus::Completed);
         }
 
-        public function verify(Request $r, Credentials $c): GatewayResult
+        public function verify(Request $request, Credentials $credentials): GatewayResult
         {
             return new GatewayResult(status: PaymentStatus::Completed);
         }
 
-        public function setCredentials(Credentials $c): static
+        public function setCredentials(Credentials $credentials): \Frolax\Payment\Contracts\GatewayDriverContract
         {
             return $this;
         }

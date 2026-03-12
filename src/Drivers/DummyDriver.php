@@ -48,7 +48,7 @@ class DummyDriver implements GatewayDriverContract
         );
     }
 
-    public function setCredentials(Credentials $credentials): static
+    public function setCredentials(Credentials $credentials): \Frolax\Payment\Contracts\GatewayDriverContract
     {
         $this->credentials = $credentials;
 

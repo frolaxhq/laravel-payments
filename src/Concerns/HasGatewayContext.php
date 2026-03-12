@@ -43,7 +43,6 @@ trait HasGatewayContext
     }
 
     /**
-     * Set runtime context (e.g. tenant_id).
      */
     public function usingContext(array $context): static
     {
@@ -74,7 +73,6 @@ trait HasGatewayContext
             gateway: $clone->resolveGatewayName(),
             profile: $clone->resolveProfile(),
             credentials: $credentials,
-            tenantId: $clone->context['tenant_id'] ?? null,
         );
 
         return $clone;
@@ -137,7 +135,7 @@ trait HasGatewayContext
         $credentials = $this->credentialsRepo()->get($gateway, $profile, $this->context);
 
         if ($credentials === null) {
-            throw new MissingCredentialsException($gateway, $profile, $this->context['tenant_id'] ?? null);
+            throw new MissingCredentialsException($gateway, $profile);
         }
 
         return $credentials;

@@ -6,9 +6,9 @@ use Frolax\Payment\Contracts\CredentialsRepositoryContract;
 use Frolax\Payment\Contracts\PaymentLoggerContract;
 use Frolax\Payment\Contracts\SupportsWebhookVerification;
 use Frolax\Payment\Events\WebhookReceived;
-use Frolax\Payment\GatewayRegistry;
 use Frolax\Payment\Models\PaymentModel;
 use Frolax\Payment\Models\PaymentWebhookEvent;
+use Frolax\Payment\GatewayRegistry;
 use Illuminate\Console\Command;
 use Illuminate\Http\Request;
 use Throwable;
@@ -105,6 +105,7 @@ class ReplayWebhookCommand extends Command
             return self::SUCCESS;
 
         } catch (Throwable $e) {
+            dump($e->getMessage(), $e->getTraceAsString());
             $this->error("Replay failed: {$e->getMessage()}");
 
             $logger->error('webhook.replay.failed', "Webhook replay failed: {$e->getMessage()}", [

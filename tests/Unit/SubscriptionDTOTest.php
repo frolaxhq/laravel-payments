@@ -1,15 +1,15 @@
 <?php
 
-use Frolax\Payment\Data\PlanDTO;
-use Frolax\Payment\Data\SubscriptionItemDTO;
+use Frolax\Payment\Data\Plan;
+use Frolax\Payment\Data\SubscriptionItem;
 use Frolax\Payment\Data\SubscriptionPayload;
 
 // -------------------------------------------------------
-// PlanDTO
+// Plan
 // -------------------------------------------------------
 
-test('PlanDTO creates from array', function () {
-    $plan = PlanDTO::fromArray([
+test('Plan creates from array', function () {
+    $plan = Plan::fromArray([
         'id' => 'plan_pro',
         'name' => 'Pro Plan',
         'money' => ['amount' => 49.99, 'currency' => 'USD'],
@@ -17,15 +17,15 @@ test('PlanDTO creates from array', function () {
         'interval_count' => 1,
     ]);
 
-    expect($plan->priceId)->toBe('plan_pro');
+    expect($plan->planId)->toBe('plan_pro');
     expect($plan->name)->toBe('Pro Plan');
     expect($plan->money->amount)->toBe(49.99);
     expect($plan->interval)->toBe('monthly');
     expect($plan->intervalCount)->toBe(1);
 });
 
-test('PlanDTO supports trial days', function () {
-    $plan = PlanDTO::fromArray([
+test('Plan supports trial days', function () {
+    $plan = Plan::fromArray([
         'id' => 'plan_trial',
         'name' => 'Trial Plan',
         'money' => ['amount' => 29.99, 'currency' => 'USD'],
@@ -36,8 +36,8 @@ test('PlanDTO supports trial days', function () {
     expect($plan->trialDays)->toBe(14);
 });
 
-test('PlanDTO supports features array', function () {
-    $plan = PlanDTO::fromArray([
+test('Plan supports features array', function () {
+    $plan = Plan::fromArray([
         'id' => 'plan_features',
         'name' => 'Feature Plan',
         'money' => ['amount' => 99.99, 'currency' => 'USD'],
@@ -49,11 +49,11 @@ test('PlanDTO supports features array', function () {
 });
 
 // -------------------------------------------------------
-// SubscriptionItemDTO
+// SubscriptionItem
 // -------------------------------------------------------
 
-test('SubscriptionItemDTO creates from array', function () {
-    $item = SubscriptionItemDTO::fromArray([
+test('SubscriptionItem creates from array', function () {
+    $item = SubscriptionItem::fromArray([
         'product_id' => 'prod_001',
         'name' => 'API Access',
         'quantity' => 5,
@@ -66,8 +66,8 @@ test('SubscriptionItemDTO creates from array', function () {
     expect($item->unitPrice->amount)->toBe(10.00);
 });
 
-test('SubscriptionItemDTO creates without unit price', function () {
-    $item = SubscriptionItemDTO::fromArray([
+test('SubscriptionItem creates without unit price', function () {
+    $item = SubscriptionItem::fromArray([
         'product_id' => 'prod_002',
         'name' => 'Addon',
         'quantity' => 1,
@@ -78,8 +78,8 @@ test('SubscriptionItemDTO creates without unit price', function () {
     expect($item->unitPrice)->toBeNull();
 });
 
-test('SubscriptionItemDTO converts to array', function () {
-    $item = SubscriptionItemDTO::fromArray([
+test('SubscriptionItem converts to array', function () {
+    $item = SubscriptionItem::fromArray([
         'product_id' => 'prod_003',
         'name' => 'Seats',
         'quantity' => 3,
@@ -112,7 +112,7 @@ test('SubscriptionPayload creates from array', function () {
         ],
     ]);
 
-    expect($payload->plan->priceId)->toBe('plan_pro');
+    expect($payload->plan->planId)->toBe('plan_pro');
     expect($payload->customer->name)->toBe('Jane Doe');
     expect($payload->urls->return)->toBe('https://example.com/return');
 });

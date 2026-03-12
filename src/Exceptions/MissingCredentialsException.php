@@ -6,13 +6,9 @@ use RuntimeException;
 
 class MissingCredentialsException extends RuntimeException
 {
-    public function __construct(string $gateway, string $profile, ?string $tenantId = null)
+    public function __construct(string $gateway, string $profile)
     {
-        $msg = "Missing credentials for gateway [{$gateway}] profile [{$profile}]";
-        if ($tenantId) {
-            $msg .= " tenant [{$tenantId}]";
-        }
-        $msg .= '.';
+        $msg = "Missing credentials for gateway [{$gateway}] profile [{$profile}].";
 
         parent::__construct($msg);
     }

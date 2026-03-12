@@ -44,8 +44,6 @@ class WebhookController extends Controller
         // Verify webhook signature if driver supports it
         if ($driver instanceof SupportsWebhookVerification && $creds) {
             $signatureValid = $driver->verifyWebhookSignature($request, $creds);
-            $eventType = $driver->parseWebhookEventType($request);
-            $gatewayReference = $driver->parseWebhookGatewayReference($request);
 
             if (! $signatureValid) {
                 $logger->warning('webhook.signature.invalid', "Invalid webhook signature for [{$gateway}]", [
@@ -56,6 +54,8 @@ class WebhookController extends Controller
             }
 
             $webhookData = $driver->parseWebhookData($request);
+            $eventType = $webhookData->canonicalEvent->value;
+            $gatewayReference = $webhookData->gatewayReference;
         }
 
         // Store webhook event (idempotency check)

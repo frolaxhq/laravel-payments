@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $id
  * @property string $gateway_name
  * @property string $profile
- * @property string|null $tenant_id
  * @property string|null $label
  * @property array<string, mixed> $credentials
  * @property bool $is_active

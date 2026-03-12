@@ -20,8 +20,7 @@ return new class extends Migration
         Schema::create(config('payments.tables.credentials', 'payment_gateway_credentials'), function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->string('gateway_name');
-            $table->string('profile')->default('default');
-            $table->string('tenant_id')->nullable();
+            $table->string('profile')->default('test');
             $table->string('label')->nullable();
             $table->text('credentials');
             $table->boolean('is_active')->default(true);
@@ -30,9 +29,8 @@ return new class extends Migration
             $table->timestamp('effective_to')->nullable();
             $table->timestamps();
 
-            $table->unique(['gateway_name', 'profile', 'tenant_id'], 'pgc_gateway_profile_tenant_unique');
+            $table->unique(['gateway_name', 'profile'], 'pgc_gateway_profile_unique');
             $table->index('gateway_name');
-            $table->index('tenant_id');
         });
 
         Schema::create(config('payments.tables.methods', 'payment_methods'), function (Blueprint $table) {
@@ -57,7 +55,6 @@ return new class extends Migration
             $table->string('order_id');
             $table->string('gateway_name');
             $table->string('profile')->default('test');
-            $table->string('tenant_id')->nullable();
             $table->string('status')->default('pending');
             $table->decimal('amount', 16, 2);
             $table->string('currency', 3);
@@ -74,9 +71,7 @@ return new class extends Migration
             $table->index('gateway_name');
             $table->index('gateway_reference');
             $table->index('status');
-            $table->index('tenant_id');
             $table->index(['gateway_name', 'status']);
-            $table->index(['tenant_id', 'gateway_name', 'status']);
             $table->index('customer_email');
         });
 
@@ -89,7 +84,7 @@ return new class extends Migration
             $table->json('request_payload')->nullable();
             $table->json('response_payload')->nullable();
             $table->json('errors')->nullable();
-            $table->decimal('duration_ms', 10, 2)->nullable();
+            $table->unsignedInteger('duration_ms')->nullable();
             $table->timestamps();
 
             $table->foreign('payment_id')
@@ -99,6 +94,7 @@ return new class extends Migration
 
             $table->index(['payment_id', 'attempt_no']);
             $table->index('status');
+            $table->index('gateway_reference');
         });
 
         Schema::create(config('payments.tables.logs', 'payment_logs'), function (Blueprint $table) {
@@ -107,13 +103,13 @@ return new class extends Migration
             $table->ulid('attempt_id')->nullable();
             $table->string('gateway_name')->nullable();
             $table->string('profile')->nullable();
-            $table->string('tenant_id')->nullable();
             $table->string('category');
             $table->text('message');
             $table->string('level')->default('info');
             $table->json('context_flat')->nullable();
             $table->json('context_nested')->nullable();
             $table->timestamp('occurred_at')->nullable();
+            $table->timestamps();
 
             $table->foreign('payment_id')
                 ->references('id')
@@ -123,6 +119,7 @@ return new class extends Migration
             $table->index('gateway_name');
             $table->index('category');
             $table->index('level');
+            $table->index('attempt_id');
         });
 
         Schema::create(config('payments.tables.refunds', 'payment_refunds'), function (Blueprint $table) {
@@ -171,14 +168,13 @@ return new class extends Migration
             $table->index('gateway_reference');
             $table->index('event_type');
             $table->index('processed');
-            $table->index(['gateway_name', 'gateway_reference', 'event_type'], 'webhook_idempotency');
+            $table->unique(['gateway_name', 'gateway_reference', 'event_type'], 'webhook_idempotency');
         });
 
         Schema::create(config('payments.tables.subscriptions', 'payment_subscriptions'), function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->string('gateway_name');
             $table->string('profile')->default('test');
-            $table->string('tenant_id')->nullable();
             $table->string('customer_id')->nullable();
             $table->string('customer_email')->nullable();
             $table->string('price_id')->nullable();
@@ -203,13 +199,11 @@ return new class extends Migration
 
             $table->index('gateway_name');
             $table->index('status');
-            $table->index('tenant_id');
             $table->index('customer_id');
             $table->index('customer_email');
             $table->index('plan_id');
             $table->index('gateway_subscription_id');
             $table->index(['gateway_name', 'status']);
-            $table->index(['tenant_id', 'status']);
             $table->index('current_period_end');
         });
 

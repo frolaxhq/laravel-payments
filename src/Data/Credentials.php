@@ -8,7 +8,6 @@ final readonly class Credentials
         public string $gateway,
         public string $profile,
         public array $credentials,
-        public ?string $tenantId = null,
         public ?string $label = null,
     ) {}
 
@@ -18,7 +17,6 @@ final readonly class Credentials
             gateway: $data['gateway'] ?? throw new \InvalidArgumentException('Gateway is required.'),
             profile: $data['profile'] ?? 'test',
             credentials: $data['credentials'] ?? [],
-            tenantId: $data['tenant_id'] ?? null,
             label: $data['label'] ?? null,
         );
     }
@@ -37,7 +35,6 @@ final readonly class Credentials
             'gateway' => $this->gateway,
             'profile' => $this->profile,
             'credentials' => $this->credentials,
-            'tenant_id' => $this->tenantId,
             'label' => $this->label,
         ];
     }
@@ -51,7 +48,6 @@ final readonly class Credentials
             'gateway' => $this->gateway,
             'profile' => $this->profile,
             'credentials' => '[REDACTED]',
-            'tenant_id' => $this->tenantId,
             'label' => $this->label,
         ];
     }

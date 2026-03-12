@@ -14,7 +14,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $id
  * @property string $gateway_name
  * @property string $profile
- * @property string|null $tenant_id
  * @property string|null $customer_id
  * @property string|null $customer_email
  * @property string|null $price_id
@@ -130,12 +129,6 @@ class Subscription extends Model
     protected function forGateway(Builder $query, string $gateway): Builder
     {
         return $query->where('gateway_name', $gateway);
-    }
-
-    #[Scope]
-    public function forTenant(Builder $query, string $tenantId): Builder
-    {
-        return $query->where('tenant_id', $tenantId);
     }
 
     #[Scope]

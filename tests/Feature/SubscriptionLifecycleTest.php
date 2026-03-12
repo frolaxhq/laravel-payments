@@ -12,32 +12,33 @@ use Frolax\Payment\Events\SubscriptionCancelled;
 use Frolax\Payment\Events\SubscriptionCreated;
 use Frolax\Payment\Events\SubscriptionPaused;
 use Frolax\Payment\Events\SubscriptionResumed;
+use Frolax\Payment\Exceptions\UnsupportedCapabilityException;
 use Frolax\Payment\GatewayRegistry;
 use Frolax\Payment\Models\Subscription;
 use Frolax\Payment\Payment;
+use Frolax\Payment\SubscriptionManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 
-function createRecurringDriver(): GatewayDriverContract&SupportsRecurring
+function createRecurringDriver(): GatewayDriverContract|SupportsRecurring
 {
-    return new class implements GatewayDriverContract, SupportsRecurring
-    {
+    return new class implements GatewayDriverContract, SupportsRecurring {
         public function name(): string
         {
             return 'recurring_mock';
         }
 
-        public function create(Payload $p, Credentials $c): GatewayResult
+        public function create(Payload $payload, Credentials $credentials): GatewayResult
         {
-            return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: 'GW-'.uniqid());
+            return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: 'GW-' . uniqid());
         }
 
-        public function verify(Request $r, Credentials $c): GatewayResult
+        public function verify(Request $request, Credentials $credentials): GatewayResult
         {
             return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: 'GW-REF');
         }
 
-        public function setCredentials(Credentials $c): static
+        public function setCredentials(Credentials $credentials): GatewayDriverContract
         {
             return $this;
         }
@@ -47,34 +48,34 @@ function createRecurringDriver(): GatewayDriverContract&SupportsRecurring
             return ['redirect', 'recurring'];
         }
 
-        public function createSubscription(SubscriptionPayload $p, Credentials $c): GatewayResult
+        public function createSubscription(SubscriptionPayload $payload, Credentials $credentials): GatewayResult
         {
-            return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: 'sub_'.uniqid());
+            return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: 'sub_' . uniqid());
         }
 
-        public function cancelSubscription(string $id, Credentials $c): GatewayResult
+        public function cancelSubscription(string $subscriptionId, Credentials $credentials): GatewayResult
         {
-            return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: $id);
+            return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: $subscriptionId);
         }
 
-        public function pauseSubscription(string $id, Credentials $c): GatewayResult
+        public function pauseSubscription(string $subscriptionId, Credentials $credentials): GatewayResult
         {
-            return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: $id);
+            return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: $subscriptionId);
         }
 
-        public function resumeSubscription(string $id, Credentials $c): GatewayResult
+        public function resumeSubscription(string $subscriptionId, Credentials $credentials): GatewayResult
         {
-            return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: $id);
+            return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: $subscriptionId);
         }
 
-        public function updateSubscription(string $id, array $changes, Credentials $c): GatewayResult
+        public function updateSubscription(string $subscriptionId, array $changes, Credentials $credentials): GatewayResult
         {
-            return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: $id);
+            return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: $subscriptionId);
         }
 
-        public function getSubscriptionStatus(string $id, Credentials $c): GatewayResult
+        public function getSubscriptionStatus(string $subscriptionId, Credentials $credentials): GatewayResult
         {
-            return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: $id);
+            return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: $subscriptionId);
         }
     };
 }
@@ -82,7 +83,7 @@ function createRecurringDriver(): GatewayDriverContract&SupportsRecurring
 function setupRecurringGateway(): void
 {
     $registry = app(GatewayRegistry::class);
-    $registry->register('recurring_mock', fn () => createRecurringDriver(), 'Mock Recurring', ['recurring']);
+    $registry->register('recurring_mock', fn() => createRecurringDriver(), 'Mock Recurring', ['recurring']);
     config()->set('payments.gateways.recurring_mock.test', ['key' => 'test_key']);
 }
 
@@ -94,7 +95,7 @@ test('subscription lifecycle: create subscription', function () {
     Event::fake();
     setupRecurringGateway();
 
-    $manager = app(\Frolax\Payment\SubscriptionManager::class);
+    $manager = app(SubscriptionManager::class);
     $result = $manager->gateway('recurring_mock')->create([
         'plan' => [
             'id' => 'plan_pro',
@@ -125,7 +126,7 @@ test('subscription lifecycle: create with trial', function () {
     Event::fake();
     setupRecurringGateway();
 
-    $manager = app(\Frolax\Payment\SubscriptionManager::class);
+    $manager = app(SubscriptionManager::class);
     $manager->gateway('recurring_mock')->create([
         'plan' => [
             'id' => 'plan_trial',
@@ -137,9 +138,9 @@ test('subscription lifecycle: create with trial', function () {
     ]);
 
     $sub = Subscription::latest()->first();
-    expect($sub->status)->toBe(SubscriptionStatus::Trialing);
-    expect($sub->trial_ends_at)->not->toBeNull();
-    expect($sub->onTrial())->toBeTrue();
+    expect($sub->status)->toBe(SubscriptionStatus::Trialing)
+        ->and($sub->trial_ends_at)->not->toBeNull()
+        ->and($sub->onTrial())->toBeTrue();
 });
 
 // -------------------------------------------------------
@@ -160,15 +161,16 @@ test('subscription lifecycle: cancel subscription', function () {
         ],
     ]);
 
+    /** @var Subscription $subscription */
     $subscription = Subscription::latest()->first();
 
     $res = $payment->gateway('recurring_mock')->cancelSubscription($subscription->id);
     expect($res->status)->toBe(PaymentStatus::Completed);
 
     $subscription->refresh();
-    expect($subscription->status)->toBe(SubscriptionStatus::Cancelled);
-    expect($subscription->cancelled_at)->not->toBeNull();
-    expect($subscription->onGracePeriod())->toBeTrue();
+    expect($subscription->status)->toBe(SubscriptionStatus::Cancelled)
+        ->and($subscription->cancelled_at)->not->toBeNull()
+        ->and($subscription->onGracePeriod())->toBeTrue();
 
     Event::assertDispatched(SubscriptionCancelled::class);
 });
@@ -191,20 +193,21 @@ test('subscription lifecycle: pause and resume', function () {
         ],
     ]);
 
+    /** @var Subscription $subscription */
     $subscription = Subscription::latest()->first();
 
     $res = $payment->gateway('recurring_mock')->pauseSubscription($subscription->id);
     expect($res->status)->toBe(PaymentStatus::Completed);
     $subscription->refresh();
-    expect($subscription->status)->toBe(SubscriptionStatus::Paused);
-    expect($subscription->isPaused())->toBeTrue();
+    expect($subscription->status)->toBe(SubscriptionStatus::Paused)
+        ->and($subscription->isPaused())->toBeTrue();
     Event::assertDispatched(SubscriptionPaused::class);
 
     $res2 = $payment->gateway('recurring_mock')->resumeSubscription($subscription->id);
     expect($res2->status)->toBe(PaymentStatus::Completed);
     $subscription->refresh();
-    expect($subscription->status)->toBe(SubscriptionStatus::Active);
-    expect($subscription->isActive())->toBeTrue();
+    expect($subscription->status)->toBe(SubscriptionStatus::Active)
+        ->and($subscription->isActive())->toBeTrue();
     Event::assertDispatched(SubscriptionResumed::class);
 });
 
@@ -226,6 +229,7 @@ test('subscription lifecycle: update quantity', function () {
         ],
     ]);
 
+    /** @var Subscription $subscription */
     $subscription = Subscription::latest()->first();
 
     $res = $payment->gateway('recurring_mock')->updateSubscription($subscription->id, [
@@ -235,8 +239,8 @@ test('subscription lifecycle: update quantity', function () {
 
     expect($res->status)->toBe(PaymentStatus::Completed);
     $subscription->refresh();
-    expect($subscription->quantity)->toBe(5);
-    expect($subscription->plan_id)->toBe('new_plan');
+    expect($subscription->quantity)->toBe(5)
+        ->and($subscription->plan_id)->toBe('new_plan');
 });
 
 // -------------------------------------------------------
@@ -244,27 +248,24 @@ test('subscription lifecycle: update quantity', function () {
 // -------------------------------------------------------
 
 test('subscription throws for non-recurring gateway on all endpoints', function () {
-    $nonRecurringDriver = \Mockery::mock(GatewayDriverContract::class);
+    $nonRecurringDriver = Mockery::mock(GatewayDriverContract::class);
     $nonRecurringDriver->shouldReceive('name')->andReturn('simple');
 
     $registry = app(GatewayRegistry::class);
-    $registry->register('simple', fn () => $nonRecurringDriver);
+    $registry->register('simple', fn() => $nonRecurringDriver);
 
-    $payment = app(\Frolax\Payment\Payment::class)->gateway('simple');
+    $payment = app(Payment::class)->gateway('simple');
 
-    expect(fn () => $payment->subscribe([
+    expect(fn() => $payment->subscribe([
         'plan' => ['id' => '1', 'name' => 'A', 'interval' => 'monthly', 'interval_count' => 1, 'money' => ['amount' => 10, 'currency' => 'USD']],
-    ]))->toThrow(\Frolax\Payment\Exceptions\UnsupportedCapabilityException::class);
+    ]))->toThrow(UnsupportedCapabilityException::class)
+        ->and(fn() => $payment->pauseSubscription('x'))
+        ->toThrow(UnsupportedCapabilityException::class)
+        ->and(fn() => $payment->resumeSubscription('x'))
+        ->toThrow(UnsupportedCapabilityException::class)
+        ->and(fn() => $payment->cancelSubscription('x'))
+        ->toThrow(UnsupportedCapabilityException::class)
+        ->and(fn() => $payment->updateSubscription('x', []))
+        ->toThrow(UnsupportedCapabilityException::class);
 
-    expect(fn () => $payment->pauseSubscription('x'))
-        ->toThrow(\Frolax\Payment\Exceptions\UnsupportedCapabilityException::class);
-
-    expect(fn () => $payment->resumeSubscription('x'))
-        ->toThrow(\Frolax\Payment\Exceptions\UnsupportedCapabilityException::class);
-
-    expect(fn () => $payment->cancelSubscription('x'))
-        ->toThrow(\Frolax\Payment\Exceptions\UnsupportedCapabilityException::class);
-
-    expect(fn () => $payment->updateSubscription('x', []))
-        ->toThrow(\Frolax\Payment\Exceptions\UnsupportedCapabilityException::class);
 });

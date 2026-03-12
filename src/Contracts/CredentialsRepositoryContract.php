@@ -11,7 +11,6 @@ interface CredentialsRepositoryContract
      *
      * @param  string  $gateway  Gateway name
      * @param  string  $profile  Profile (test/live)
-     * @param  array  $context  Optional context (e.g. ['tenant_id' => ...])
      */
     public function get(string $gateway, string $profile, array $context = []): ?Credentials;
 

@@ -12,7 +12,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $attempt_id
  * @property string|null $gateway_name
  * @property string|null $profile
- * @property string|null $tenant_id
  * @property string $category
  * @property string $message
  * @property string $level

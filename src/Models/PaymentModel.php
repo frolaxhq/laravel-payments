@@ -12,7 +12,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $order_id
  * @property string $gateway_name
  * @property string $profile
- * @property string|null $tenant_id
  * @property PaymentStatus $status
  * @property string $amount
  * @property string $currency
@@ -92,6 +91,5 @@ class PaymentModel extends Model
 
     public function scopeForTenant($query, ?string $tenantId)
     {
-        return $query->where('tenant_id', $tenantId);
     }
 }

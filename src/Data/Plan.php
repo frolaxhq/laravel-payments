@@ -5,7 +5,7 @@ namespace Frolax\Payment\Data;
 final readonly class Plan
 {
     public function __construct(
-        public string $priceId,
+        public ?string $priceId,
         public string $planId,
         public string $name,
         public Money $money,
@@ -20,8 +20,8 @@ final readonly class Plan
     public static function fromArray(array $data): static
     {
         return new self(
-            priceId: $data['priceId'],
-            planId: $data['planId'],
+            priceId: $data['priceId'] ?? $data['price_id'] ?? null,
+            planId: $data['planId'] ?? $data['id'],
             name: $data['name'],
             money: Money::fromArray($data['money']),
             interval: $data['interval'],

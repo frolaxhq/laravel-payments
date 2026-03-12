@@ -89,7 +89,7 @@ test('validate credentials command succeeds on valid credentials', function () {
             return 'req_gateway';
         }
 
-        public function setCredentials(\Frolax\Payment\Data\Credentials $credentials): static
+        public function setCredentials(\Frolax\Payment\Data\Credentials $credentials): \Frolax\Payment\Contracts\GatewayDriverContract
         {
             return $this;
         }
@@ -190,7 +190,7 @@ test('validate credentials command fails when missing credentials', function () 
 
     // No config set
     $this->artisan('payments:credentials:validate', ['--gateway' => 'missing_gateway'])
-        ->expectsOutputToContain('No credentials found for profile')
+        ->expectsOutputToContain('Some gateways have missing credentials.')
         ->assertExitCode(1);
 });
 

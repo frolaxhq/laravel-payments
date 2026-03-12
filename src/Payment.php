@@ -70,7 +70,6 @@ class Payment
             driver: $driver,
             payload: $payload,
             credentials: $credentials,
-            tenantId: $this->context['tenant_id'] ?? null,
         );
 
         /** @var PaymentContext $result */

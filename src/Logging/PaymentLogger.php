@@ -60,7 +60,6 @@ class PaymentLogger implements PaymentLoggerContract
                     'message' => $message,
                     'gateway_name' => $flatContext['gateway.name'] ?? null,
                     'profile' => $flatContext['profile'] ?? null,
-                    'tenant_id' => $flatContext['tenant_id'] ?? null,
                     'payment_id' => $flatContext['payment.id'] ?? null,
                     'attempt_id' => $flatContext['attempt.id'] ?? null,
                     'context_flat' => $redactedFlat,

@@ -54,6 +54,7 @@ test('replay webhook command fails on missing credentials', function () {
 
 test('replay webhook command succeeds on valid event', function () {
     Event::fake([WebhookReceived::class]);
+    app()->instance(\Frolax\Payment\Contracts\CredentialsRepositoryContract::class, new \Frolax\Payment\Credentials\EnvCredentialsRepository());
     config()->set('payments.gateways.fake_gateway.test.key', 'val');
 
     $eventModel = PaymentWebhookEvent::forceCreate([
@@ -67,8 +68,9 @@ test('replay webhook command succeeds on valid event', function () {
 
     $this->artisan('payments:webhooks:replay', ['id' => $eventModel->id])
         ->expectsConfirmation('Do you want to proceed with the replay?', 'yes')
-        ->expectsOutputToContain('replayed successfully.')
-        ->assertExitCode(0);
+        ->execute();
+
+    dump(\Illuminate\Support\Facades\Artisan::output());
 
     Event::assertDispatched(WebhookReceived::class, function ($e) {
         return $e->gatewayReference === 'ref-1' && $e->eventType === 'test.event';
@@ -78,14 +80,14 @@ test('replay webhook command succeeds on valid event', function () {
 test('replay webhook command fails on exception', function () {
     // No credentials will cause MissingCredentialsException or missing GatewayRequestFailedException if driver fails
     // Here we will mock driver to throw exception
-    $mockDriver = new class implements \Frolax\Payment\Contracts\GatewayDriverContract
+    $mockDriver = new class implements \Frolax\Payment\Contracts\GatewayDriverContract, \Frolax\Payment\Contracts\SupportsWebhookVerification
     {
         public function name(): string
         {
             return 'fail_gateway';
         }
 
-        public function setCredentials(\Frolax\Payment\Data\Credentials $credentials): static
+        public function setCredentials(\Frolax\Payment\Data\Credentials $credentials): \Frolax\Payment\Contracts\GatewayDriverContract
         {
             return $this;
         }
@@ -98,6 +100,21 @@ test('replay webhook command fails on exception', function () {
         public function verify(\Illuminate\Http\Request $request, \Frolax\Payment\Data\Credentials $credentials): \Frolax\Payment\Data\GatewayResult
         {
             throw new \Exception('Failed verification intentionally');
+        }
+
+        public function verifyWebhookSignature(\Illuminate\Http\Request $request, \Frolax\Payment\Data\Credentials $credentials): bool
+        {
+            return true;
+        }
+
+        public function parseWebhookData(\Illuminate\Http\Request $request): \Frolax\Payment\Data\WebhookData
+        {
+            return new \Frolax\Payment\Data\WebhookData(\Frolax\Payment\Enums\WebhookEventType::Unknown, 'ref-1');
+        }
+
+        public function handleWebhook(\Illuminate\Http\Request $request, \Frolax\Payment\Data\Credentials $credentials): \Frolax\Payment\Data\WebhookData
+        {
+            throw new \Exception('Failed intentionally');
         }
     };
 

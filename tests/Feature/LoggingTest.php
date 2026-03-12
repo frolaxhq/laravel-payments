@@ -22,7 +22,6 @@ test('payment logger redacts configured keys and writes to DB', function () {
         'gateway' => ['name' => 'stripe'],
         'payment' => ['id' => 'pay_123'],
         'profile' => 'default',
-        'tenant_id' => 'tenant_1',
         'attempt' => ['id' => 'att_123'],
         'sensitive' => [
             'my_secret' => 'do_not_log',
@@ -40,7 +39,6 @@ test('payment logger redacts configured keys and writes to DB', function () {
     expect($log->gateway_name)->toBe('stripe');
     expect($log->payment_id)->toBe('pay_123');
     expect($log->profile)->toBe('default');
-    expect($log->tenant_id)->toBe('tenant_1');
     expect($log->attempt_id)->toBe('att_123');
 
     // Check nested redaction
@@ -88,7 +86,7 @@ test('logger gracefully catches DB exception and writes to Log channel', functio
     $logger = new PaymentLogger($config);
 
     // Force DB exception by pointing to fake table
-    app('db')->statement('DROP TABLE IF EXISTS '.config('payments.tables.logs', 'payment_logs'));
+    \Illuminate\Support\Facades\Schema::dropIfExists(config('payments.tables.logs', 'payment_logs'));
 
     expect(fn () => $logger->info('cat', 'msg'))->not->toThrow(\Throwable::class);
 });

@@ -10,22 +10,12 @@ class DatabaseCredentialsRepository implements CredentialsRepositoryContract
 {
     public function get(string $gateway, string $profile, array $context = []): ?Credentials
     {
-        $tenantId = $context['tenant_id'] ?? null;
         $now = now();
 
         $query = PaymentGatewayCredential::query()
             ->where('gateway_name', $gateway)
             ->where('profile', $profile)
             ->where('is_active', true);
-
-        if ($tenantId !== null) {
-            $query->where(function ($q) use ($tenantId) {
-                $q->where('tenant_id', $tenantId)
-                    ->orWhereNull('tenant_id');
-            });
-        } else {
-            $query->whereNull('tenant_id');
-        }
 
         // Time window filtering
         $query->where(function ($q) use ($now) {
@@ -41,9 +31,8 @@ class DatabaseCredentialsRepository implements CredentialsRepositoryContract
             });
         });
 
-        // Priority ordering: tenant-specific first, then by priority
-        $record = $query->orderByRaw('CASE WHEN tenant_id IS NOT NULL THEN 0 ELSE 1 END')
-            ->orderBy('priority', 'desc')
+        // Priority ordering: highest priority first
+        $record = $query->orderBy('priority', 'desc')
             ->first();
 
         if (! $record) {
@@ -60,7 +49,6 @@ class DatabaseCredentialsRepository implements CredentialsRepositoryContract
             gateway: $gateway,
             profile: $profile,
             credentials: is_array($credentials) ? $credentials : [],
-            tenantId: $record->tenant_id,
             label: $record->label,
         );
     }

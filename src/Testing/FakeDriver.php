@@ -106,9 +106,9 @@ class FakeDriver implements GatewayDriverContract, SupportsRecurring, SupportsRe
         return $this->resolveResult();
     }
 
-    public function updateSubscription(string $subscriptionId, array $data, Credentials $credentials): GatewayResult
+    public function updateSubscription(string $subscriptionId, array $changes, Credentials $credentials): GatewayResult
     {
-        $this->calls[] = ['method' => 'updateSubscription', 'args' => compact('subscriptionId', 'data', 'credentials')];
+        $this->calls[] = ['method' => 'updateSubscription', 'args' => compact('subscriptionId', 'changes', 'credentials')];
 
         return $this->resolveResult();
     }
@@ -141,7 +141,7 @@ class FakeDriver implements GatewayDriverContract, SupportsRecurring, SupportsRe
         return $this->resolveResult();
     }
 
-    public function setCredentials(Credentials $credentials): static
+    public function setCredentials(Credentials $credentials): \Frolax\Payment\Contracts\GatewayDriverContract
     {
         return $this;
     }

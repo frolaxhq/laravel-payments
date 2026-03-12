@@ -1,12 +1,12 @@
 <?php
 
 use Frolax\Payment\Data\Address;
-use Frolax\Payment\Data\ContextDTO;
+use Frolax\Payment\Data\Context;
 use Frolax\Payment\Data\Credentials;
 use Frolax\Payment\Data\Customer;
 use Frolax\Payment\Data\GatewayResult;
-use Frolax\Payment\Data\OrderItemDTO;
-use Frolax\Payment\Data\PlanDTO;
+use Frolax\Payment\Data\OrderItem;
+use Frolax\Payment\Data\Plan;
 use Frolax\Payment\Data\StatusPayload;
 use Frolax\Payment\Data\SubscriptionPayload;
 use Frolax\Payment\Enums\PaymentStatus;
@@ -36,7 +36,7 @@ test('canonical subscription payload works', function () {
     $dto = SubscriptionPayload::fromArray($data);
 
     $arr = $dto->toArray();
-    expect($arr['plan']['id'])->toBe('plan_1');
+    expect($arr['plan']['planId'])->toBe('plan_1');
     expect($arr['customer']['email'])->toBe('e@e.com');
     expect($arr['trial_days'])->toBe(7);
 });
@@ -46,13 +46,13 @@ test('canonical subscription payload throws without plan', function () {
 })->throws(Exception::class);
 
 test('context DTO works', function () {
-    $dto = ContextDTO::fromArray(['ip' => '127', 'user_agent' => 'UA', 'locale' => 'en']);
+    $dto = Context::fromArray(['ip' => '127', 'user_agent' => 'UA', 'locale' => 'en']);
     expect($dto->toArray())->toBe(['ip' => '127', 'user_agent' => 'UA', 'locale' => 'en']);
 });
 
 test('credentials DTO array works', function () {
-    $dto = Credentials::fromArray(['gateway' => 'gw', 'profile' => 'prof', 'credentials' => ['k' => 'v'], 'tenant_id' => 'ten1', 'label' => 'lab1']);
-    expect($dto->toArray())->toBe(['gateway' => 'gw', 'profile' => 'prof', 'credentials' => ['k' => 'v'], 'tenant_id' => 'ten1', 'label' => 'lab1']);
+    $dto = Credentials::fromArray(['gateway' => 'gw', 'profile' => 'prof', 'credentials' => ['k' => 'v'], 'label' => 'lab1']);
+    expect($dto->toArray())->toBe(['gateway' => 'gw', 'profile' => 'prof', 'credentials' => ['k' => 'v'], 'label' => 'lab1']);
 });
 
 test('customer DTO works', function () {
@@ -91,11 +91,11 @@ test('gateway result getters work', function () {
 });
 
 test('order item DTO works', function () {
-    $dto = OrderItemDTO::fromArray(['name' => 'In', 'quantity' => 1, 'unit_price' => 10, 'sku' => 'sku']);
+    $dto = OrderItem::fromArray(['name' => 'In', 'quantity' => 1, 'unit_price' => 10, 'sku' => 'sku']);
     $arr = $dto->toArray();
     expect($arr['name'])->toBe('In');
 });
 
 test('plan DTO throws without money', function () {
-    PlanDTO::fromArray(['id' => '1']);
+    Plan::fromArray(['id' => '1']);
 })->throws(Exception::class);

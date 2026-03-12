@@ -66,7 +66,6 @@ class SubscriptionManager
         $subscription = Subscription::create([
             'gateway_name' => $gateway,
             'profile' => $this->resolveProfile(),
-            'tenant_id' => $this->context['tenant_id'] ?? null,
             'customer_id' => $payload->customer?->id,
             'customer_email' => $payload->customer?->email,
             'price_id' => $payload->plan->priceId,

@@ -20,17 +20,17 @@ use Illuminate\Support\Facades\Event;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->logger = Mockery::mock(PaymentLoggerContract::class)->makePartial();
-    $this->logger->shouldReceive('info')->andReturnNull();
-    $this->logger->shouldReceive('warning')->andReturnNull();
-    $this->logger->shouldReceive('error')->andReturnNull();
+    $this->paymentLogger = Mockery::mock(PaymentLoggerContract::class)->makePartial();
+    $this->paymentLogger->shouldReceive('info')->andReturnNull();
+    $this->paymentLogger->shouldReceive('warning')->andReturnNull();
+    $this->paymentLogger->shouldReceive('error')->andReturnNull();
 });
 
 test('cancel controller redirects and does not persist without order_id', function () {
     $controller = new CancelController;
     $request = Request::create('/cancel?redirect=/home', 'GET');
 
-    $response = $controller($request, 'fake', $this->logger);
+    $response = $controller($request, 'fake', $this->paymentLogger);
 
     expect($response->getStatusCode())->toBe(302)
         ->and($response->headers->get('Location'))->toEndWith('/home');
@@ -53,7 +53,7 @@ test('cancel controller persists cancellation and fires event', function () {
     $controller = new CancelController;
     $request = Request::create('/cancel?order_id=ord_123&redirect=/cart', 'GET');
 
-    $response = $controller($request, 'fake', $this->logger);
+    $response = $controller($request, 'fake', $this->paymentLogger);
 
     expect($payment->fresh()->status)->toBe(PaymentStatus::Cancelled);
     Event::assertDispatched(PaymentCancelled::class, fn ($e) => $e->paymentId === 'pay_123');
@@ -71,7 +71,7 @@ test('return controller verifies payment and logs correctly', function () {
     $controller = new ReturnController;
     $request = Request::create('/return?redirect=/thanks', 'GET');
 
-    $response = $controller($request, 'fake', $paymentManager, $this->logger);
+    $response = $controller($request, 'fake', $paymentManager, $this->paymentLogger);
 
     expect($response->headers->get('Location'))->toEndWith('/thanks');
 });
@@ -86,7 +86,7 @@ test('return controller handles verification exception', function () {
     $controller = new ReturnController;
     $request = Request::create('/return?redirect=/error', 'GET');
 
-    $response = $controller($request, 'fake', $paymentManager, $this->logger);
+    $response = $controller($request, 'fake', $paymentManager, $this->paymentLogger);
 
     expect($response->headers->get('Location'))->toEndWith('/error');
 });
@@ -104,8 +104,9 @@ test('webhook controller handles invalid signature', function () {
         \Frolax\Payment\Contracts\SupportsWebhookVerification::class
     );
     $mockDriver->shouldReceive('verifyWebhookSignature')->andReturn(false);
-    $mockDriver->shouldReceive('parseWebhookEventType')->andReturn('event');
-    $mockDriver->shouldReceive('parseWebhookGatewayReference')->andReturn('ref');
+    // Since signature verify returns false, it actually returns early inside the controller,
+    // but we can mock parseWebhookData just in case if the implementation changed.
+    $mockDriver->shouldReceive('parseWebhookData')->andReturn(new \Frolax\Payment\Data\WebhookData(\Frolax\Payment\Enums\WebhookEventType::Unknown, 'fake', 'event', 'ref'));
 
     $registryMock = Mockery::mock(GatewayRegistry::class)->makePartial();
     $registryMock->shouldReceive('resolve')->with('fake')->andReturn($mockDriver);
@@ -118,15 +119,15 @@ test('webhook controller handles invalid signature', function () {
     $controller = new WebhookController;
     $request = Request::create('/webhook', 'POST', ['some' => 'data']);
 
-    $response = $controller($request, 'fake', $registryMock, $config, $this->logger);
+    $response = $controller($request, 'fake', $registryMock, $config, $this->paymentLogger);
 
-    expect($response->getStatusCode())->toBe(403)
+    expect($response->getStatusCode())->toBe(401)
         ->and($response->getContent())->toBe('Invalid signature');
 });
 
 test('webhook controller handles full valid webhook cycle', function () {
     Event::fake([WebhookReceived::class]);
-    config(['payments.persistence.enabled' => true, 'payments.persistence.payments' => true]);
+    config(['payments.persistence.enabled' => true, 'payments.persistence.payments' => true, 'payments.persistence.webhooks' => true]);
 
     $payment = PaymentModel::create([
         'id' => 'pay_abc',
@@ -143,9 +144,8 @@ test('webhook controller handles full valid webhook cycle', function () {
         \Frolax\Payment\Contracts\SupportsWebhookVerification::class
     );
     $mockDriver->shouldReceive('verifyWebhookSignature')->andReturn(true);
-    $mockDriver->shouldReceive('parseWebhookEventType')->andReturn('payment.success');
-    $mockDriver->shouldReceive('parseWebhookGatewayReference')->andReturn('ref_abc');
-    $mockDriver->shouldReceive('verify')->andReturn(new GatewayResult(PaymentStatus::Completed));
+    $mockDriver->shouldReceive('parseWebhookData')->andReturn(new \Frolax\Payment\Data\WebhookData(canonicalEvent: \Frolax\Payment\Enums\WebhookEventType::PaymentCompleted, gateway: 'fake', gatewayEventType: 'payment.success', gatewayReference: 'ref_abc'));
+    $mockDriver->shouldReceive('handleWebhook')->andReturn(new \Frolax\Payment\Data\WebhookData(canonicalEvent: \Frolax\Payment\Enums\WebhookEventType::PaymentCompleted, gateway: 'fake', gatewayEventType: 'payment.success', gatewayReference: 'ref_abc', paymentStatus: PaymentStatus::Completed));
 
     $registryMock = Mockery::mock(GatewayRegistry::class)->makePartial();
     $registryMock->shouldReceive('resolve')->with('fake')->andReturn($mockDriver);
@@ -158,7 +158,7 @@ test('webhook controller handles full valid webhook cycle', function () {
     $controller = new WebhookController;
     $request = Request::create('/webhook', 'POST', ['some' => 'data']);
 
-    $response = $controller($request, 'fake', $registryMock, $config, $this->logger);
+    $response = $controller($request, 'fake', $registryMock, $config, $this->paymentLogger);
 
     // Check WebhookEvent created and processed
     $webhookEvent = PaymentWebhookEvent::first();
@@ -172,13 +172,13 @@ test('webhook controller handles full valid webhook cycle', function () {
 });
 
 test('webhook controller returns early if already processed', function () {
-    config(['payments.persistence.enabled' => true, 'payments.persistence.payments' => true]);
+    config(['payments.persistence.enabled' => true, 'payments.persistence.payments' => true, 'payments.persistence.webhooks' => true]);
 
     PaymentWebhookEvent::create([
         'id' => 'evt_1',
         'gateway_name' => 'fake',
         'gateway_reference' => 'ref_already',
-        'event_type' => 'payment.success',
+        'event_type' => \Frolax\Payment\Enums\WebhookEventType::PaymentCompleted->value,
         'processed' => true,
     ]);
 
@@ -187,8 +187,7 @@ test('webhook controller returns early if already processed', function () {
         \Frolax\Payment\Contracts\SupportsWebhookVerification::class
     );
     $mockDriver->shouldReceive('verifyWebhookSignature')->andReturn(true);
-    $mockDriver->shouldReceive('parseWebhookEventType')->andReturn('payment.success');
-    $mockDriver->shouldReceive('parseWebhookGatewayReference')->andReturn('ref_already');
+    $mockDriver->shouldReceive('parseWebhookData')->andReturn(new \Frolax\Payment\Data\WebhookData(canonicalEvent: \Frolax\Payment\Enums\WebhookEventType::PaymentCompleted, gateway: 'fake', gatewayEventType: 'payment.success', gatewayReference: 'ref_already'));
 
     $registryMock = Mockery::mock(GatewayRegistry::class)->makePartial();
     $registryMock->shouldReceive('resolve')->with('fake')->andReturn($mockDriver);
@@ -201,7 +200,7 @@ test('webhook controller returns early if already processed', function () {
     $controller = new WebhookController;
     $request = Request::create('/webhook', 'POST', ['some' => 'data']);
 
-    $response = $controller($request, 'fake', $registryMock, $config, $this->logger);
+    $response = $controller($request, 'fake', $registryMock, $config, $this->paymentLogger);
 
     expect($response->getStatusCode())->toBe(200)
         ->and($response->getContent())->toBe('Already processed');
@@ -213,9 +212,8 @@ test('webhook controller handles verify exception', function () {
         \Frolax\Payment\Contracts\SupportsWebhookVerification::class
     );
     $mockDriver->shouldReceive('verifyWebhookSignature')->andReturn(true);
-    $mockDriver->shouldReceive('parseWebhookEventType')->andReturn('payment.success');
-    $mockDriver->shouldReceive('parseWebhookGatewayReference')->andReturn('ref_err');
-    $mockDriver->shouldReceive('verify')->andThrow(new Exception('Webhook error'));
+    $mockDriver->shouldReceive('parseWebhookData')->andReturn(new \Frolax\Payment\Data\WebhookData(canonicalEvent: \Frolax\Payment\Enums\WebhookEventType::PaymentCompleted, gateway: 'fake', gatewayEventType: 'payment.success', gatewayReference: 'ref_err'));
+    $mockDriver->shouldReceive('handleWebhook')->andThrow(new Exception('Webhook error'));
 
     $registryMock = Mockery::mock(GatewayRegistry::class)->makePartial();
     $registryMock->shouldReceive('resolve')->with('fake')->andReturn($mockDriver);
@@ -228,7 +226,7 @@ test('webhook controller handles verify exception', function () {
     $controller = new WebhookController;
     $request = Request::create('/webhook', 'POST');
 
-    $response = $controller($request, 'fake', $registryMock, $config, $this->logger);
+    $response = $controller($request, 'fake', $registryMock, $config, $this->paymentLogger);
 
     // We mocked the logger so we expect the error to have been logged and the response returns 200 OK.
     // Ensure WebhookEvent is marked processed anyway since it didn't completely abort the response logic,

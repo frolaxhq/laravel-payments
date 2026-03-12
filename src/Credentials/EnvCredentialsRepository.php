@@ -19,7 +19,6 @@ class EnvCredentialsRepository implements CredentialsRepositoryContract
             gateway: $gateway,
             profile: $profile,
             credentials: $credentials,
-            tenantId: $context['tenant_id'] ?? null,
         );
     }
 

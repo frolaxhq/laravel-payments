@@ -32,7 +32,6 @@ class PersistPaymentRecord
                     'order_id' => $newContext->payload->order->id,
                     'gateway_name' => $newContext->gateway,
                     'profile' => $newContext->profile,
-                    'tenant_id' => $newContext->tenantId,
                     'status' => PaymentStatus::Pending->value,
                     'amount' => $newContext->payload->money->amount,
                     'currency' => $newContext->payload->money->currency,

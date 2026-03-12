@@ -19,8 +19,6 @@ class ValidateCredentialsCommand extends Command
     {
         $gatewayFilter = $this->option('gateway');
         $profile = $this->option('profile') ?? config('payments.profile', 'test');
-        $tenantId = $this->option('tenant');
-        $context = $tenantId ? ['tenant_id' => $tenantId] : [];
 
         $gateways = $registry->all();
         $issues = [];
@@ -38,10 +36,9 @@ class ValidateCredentialsCommand extends Command
                 continue;
             }
 
-            $creds = $credentialsRepo->get($key, $profile, $context);
+            $creds = $credentialsRepo->get($key, $profile);
 
             if (! $creds) {
-                $this->error("  {$key}: No credentials found for profile [{$profile}]".($tenantId ? " tenant [{$tenantId}]" : ''));
                 $issues[] = $key;
 
                 continue;

@@ -20,21 +20,21 @@ function createDummyDriver(): GatewayDriverContract
             return 'dummy';
         }
 
-        public function create(Payload $p, Credentials $c): GatewayResult
+        public function create(Payload $payload, Credentials $credentials): GatewayResult
         {
             return new GatewayResult(
                 status: PaymentStatus::Pending,
-                gatewayReference: 'GW-REF-'.$p->idempotencyKey,
+                gatewayReference: 'GW-REF-'.$payload->idempotencyKey,
                 redirectUrl: 'https://gateway.test/pay',
             );
         }
 
-        public function verify(Request $r, Credentials $c): GatewayResult
+        public function verify(Request $request, Credentials $credentials): GatewayResult
         {
             return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: 'GW-REF-001');
         }
 
-        public function setCredentials(Credentials $c): static
+        public function setCredentials(Credentials $credentials): \Frolax\Payment\Contracts\GatewayDriverContract
         {
             return $this;
         }
@@ -106,7 +106,6 @@ test('Payment manager supports fluent context and profile', function () {
     $result = $payment
         ->gateway('fluent_gw')
         ->withProfile('live')
-        ->usingContext(['tenant_id' => 'tenant-001'])
         ->create([
             'idempotency_key' => 'fluent-test-001',
             'order' => ['id' => 'ORD-F01'],
