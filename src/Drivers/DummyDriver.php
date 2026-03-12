@@ -29,7 +29,7 @@ class DummyDriver implements GatewayDriverContract
     {
         return new GatewayResult(
             status: PaymentStatus::Completed,
-            gatewayReference: 'DUMMY-' . (string) Str::ulid(),
+            gatewayReference: 'DUMMY-'.(string) Str::ulid(),
             gatewayResponse: [
                 'driver' => 'dummy',
                 'order_id' => $payload->order->id,
@@ -48,7 +48,7 @@ class DummyDriver implements GatewayDriverContract
         );
     }
 
-    public function setCredentials(Credentials $credentials): \Frolax\Payment\Contracts\GatewayDriverContract
+    public function setCredentials(Credentials $credentials): GatewayDriverContract
     {
         $this->credentials = $credentials;
 

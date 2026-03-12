@@ -5,6 +5,7 @@ namespace Frolax\Payment\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * @property string $id
@@ -13,9 +14,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $feature
  * @property string $quantity
  * @property array<string, mixed>|null $metadata
- * @property \Illuminate\Support\Carbon|null $recorded_at
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property Carbon|null $recorded_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  */
 class SubscriptionUsage extends Model
 {

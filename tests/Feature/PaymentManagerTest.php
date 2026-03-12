@@ -7,8 +7,10 @@ use Frolax\Payment\Data\Payload;
 use Frolax\Payment\Enums\PaymentStatus;
 use Frolax\Payment\Exceptions\GatewayNotFoundException;
 use Frolax\Payment\Exceptions\MissingCredentialsException;
+use Frolax\Payment\Exceptions\UnsupportedCapabilityException;
 use Frolax\Payment\GatewayRegistry;
 use Frolax\Payment\Payment;
+use Frolax\Payment\RefundManager;
 use Illuminate\Http\Request;
 
 function createDummyDriver(): GatewayDriverContract
@@ -34,7 +36,7 @@ function createDummyDriver(): GatewayDriverContract
             return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: 'GW-REF-001');
         }
 
-        public function setCredentials(Credentials $credentials): \Frolax\Payment\Contracts\GatewayDriverContract
+        public function setCredentials(Credentials $credentials): GatewayDriverContract
         {
             return $this;
         }
@@ -89,12 +91,12 @@ test('Payment manager throws for unsupported refund', function () {
 
     config()->set('payments.gateways.no_refund.test', ['key' => 'k']);
 
-    $manager = app(\Frolax\Payment\RefundManager::class);
+    $manager = app(RefundManager::class);
     $manager->gateway('no_refund')->refund([
         'payment_id' => 'PAY-001',
         'money' => ['amount' => 50, 'currency' => 'USD'],
     ]);
-})->throws(\Frolax\Payment\Exceptions\UnsupportedCapabilityException::class);
+})->throws(UnsupportedCapabilityException::class);
 
 test('Payment manager supports fluent context and profile', function () {
     $registry = app(GatewayRegistry::class);

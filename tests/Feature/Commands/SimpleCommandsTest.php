@@ -1,7 +1,15 @@
 <?php
 
+use Frolax\Payment\Contracts\GatewayAddonContract;
+use Frolax\Payment\Contracts\GatewayDriverContract;
+use Frolax\Payment\Contracts\SupportsRefund;
+use Frolax\Payment\Data\Credentials;
+use Frolax\Payment\Data\GatewayResult;
+use Frolax\Payment\Data\Payload;
+use Frolax\Payment\Enums\PaymentStatus;
 use Frolax\Payment\GatewayRegistry;
 use Frolax\Payment\Testing\FakeDriver;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 
 beforeEach(function () {
@@ -17,7 +25,7 @@ test('list gateways command shows empty when none registered', function () {
 });
 
 test('list gateways command lists registered gateways with capabilities and currencies', function () {
-    $addon = new class implements \Frolax\Payment\Contracts\GatewayAddonContract
+    $addon = new class implements GatewayAddonContract
     {
         public function gatewayKey(): string
         {
@@ -36,7 +44,7 @@ test('list gateways command lists registered gateways with capabilities and curr
 
         public function capabilities(): array
         {
-            return [\Frolax\Payment\Contracts\SupportsRefund::class, 'CustomCapability'];
+            return [SupportsRefund::class, 'CustomCapability'];
         }
 
         public function credentialSchema(): array
@@ -55,7 +63,7 @@ test('list gateways command lists registered gateways with capabilities and curr
         'fake_gateway' => [
             'driver' => FakeDriver::class,
             'display_name' => 'Fake Gateway',
-            'capabilities' => [\Frolax\Payment\Contracts\SupportsRefund::class, 'CustomCapability'],
+            'capabilities' => [SupportsRefund::class, 'CustomCapability'],
             'addon' => $addon,
             'supported_currencies' => ['USD', 'EUR'],
         ],
@@ -82,33 +90,33 @@ test('list gateways command lists registered gateways with capabilities and curr
 
 test('validate credentials command succeeds on valid credentials', function () {
     // Register driver with requirement
-    $driver = new class implements \Frolax\Payment\Contracts\GatewayDriverContract
+    $driver = new class implements GatewayDriverContract
     {
         public function name(): string
         {
             return 'req_gateway';
         }
 
-        public function setCredentials(\Frolax\Payment\Data\Credentials $credentials): \Frolax\Payment\Contracts\GatewayDriverContract
+        public function setCredentials(Credentials $credentials): GatewayDriverContract
         {
             return $this;
         }
 
-        public function create(\Frolax\Payment\Data\Payload $payload, \Frolax\Payment\Data\Credentials $credentials): \Frolax\Payment\Data\GatewayResult
+        public function create(Payload $payload, Credentials $credentials): GatewayResult
         {
-            return new \Frolax\Payment\Data\GatewayResult(\Frolax\Payment\Enums\PaymentStatus::Pending);
+            return new GatewayResult(PaymentStatus::Pending);
         }
 
-        public function verify(\Illuminate\Http\Request $request, \Frolax\Payment\Data\Credentials $credentials): \Frolax\Payment\Data\GatewayResult
+        public function verify(Request $request, Credentials $credentials): GatewayResult
         {
-            return new \Frolax\Payment\Data\GatewayResult(\Frolax\Payment\Enums\PaymentStatus::Pending);
+            return new GatewayResult(PaymentStatus::Pending);
         }
     };
 
     $addon = current(array_filter($this->registry->all(), fn ($g) => $g['driver'] === FakeDriver::class))['addon'] ?? null;
 
     // Create a mock addon to have credentialSchema
-    $mockAddon = new class implements \Frolax\Payment\Contracts\GatewayAddonContract
+    $mockAddon = new class implements GatewayAddonContract
     {
         public function gatewayKey(): string
         {
@@ -153,7 +161,7 @@ test('validate credentials command succeeds on valid credentials', function () {
 });
 
 test('validate credentials command fails when missing credentials', function () {
-    $mockAddon = new class implements \Frolax\Payment\Contracts\GatewayAddonContract
+    $mockAddon = new class implements GatewayAddonContract
     {
         public function gatewayKey(): string
         {
@@ -195,7 +203,7 @@ test('validate credentials command fails when missing credentials', function () 
 });
 
 test('validate credentials command fails on missing required keys', function () {
-    $mockAddon = new class implements \Frolax\Payment\Contracts\GatewayAddonContract
+    $mockAddon = new class implements GatewayAddonContract
     {
         public function gatewayKey(): string
         {

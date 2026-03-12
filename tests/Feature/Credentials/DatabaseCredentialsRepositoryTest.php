@@ -4,7 +4,6 @@ use Frolax\Payment\Credentials\DatabaseCredentialsRepository;
 use Frolax\Payment\Data\Credentials;
 use Frolax\Payment\Models\PaymentGatewayCredential;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Crypt;
 
 uses(RefreshDatabase::class);
 
@@ -36,10 +35,6 @@ test('database repository retrieves active credential and decrypts', function ()
         ->and($dto->credentials)->toBe(['key' => 'secret_val'])
         ->and($dto->label)->toBe('Primary Credentials');
 });
-
-
-
-
 
 test('database repository has returns true if credential exists', function () {
     PaymentGatewayCredential::create([

@@ -58,4 +58,3 @@ class DatabaseCredentialsRepository implements CredentialsRepositoryContract
         return $this->get($gateway, $profile, $context) !== null;
     }
 }
-

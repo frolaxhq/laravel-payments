@@ -4,6 +4,9 @@ use Frolax\Payment\Contracts\CredentialsRepositoryContract;
 use Frolax\Payment\Credentials\CompositeCredentialsRepository;
 use Frolax\Payment\Credentials\DatabaseCredentialsRepository;
 use Frolax\Payment\Credentials\EnvCredentialsRepository;
+use Frolax\Payment\Payment;
+use Frolax\Payment\RefundManager;
+use Frolax\Payment\SubscriptionManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -35,12 +38,12 @@ test('service provider registers env credentials repository as default', functio
 });
 
 test('service provider resolves managers from app container correctly', function () {
-    $payment = app(\Frolax\Payment\Payment::class);
-    expect($payment)->toBeInstanceOf(\Frolax\Payment\Payment::class);
+    $payment = app(Payment::class);
+    expect($payment)->toBeInstanceOf(Payment::class);
 
-    $sub = app(\Frolax\Payment\SubscriptionManager::class);
-    expect($sub)->toBeInstanceOf(\Frolax\Payment\SubscriptionManager::class);
+    $sub = app(SubscriptionManager::class);
+    expect($sub)->toBeInstanceOf(SubscriptionManager::class);
 
-    $refund = app(\Frolax\Payment\RefundManager::class);
-    expect($refund)->toBeInstanceOf(\Frolax\Payment\RefundManager::class);
+    $refund = app(RefundManager::class);
+    expect($refund)->toBeInstanceOf(RefundManager::class);
 });

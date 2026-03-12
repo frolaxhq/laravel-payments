@@ -27,5 +27,5 @@ interface GatewayDriverContract
     /**
      * Set credentials for this driver instance.
      */
-    public function setCredentials(Credentials $credentials): \Frolax\Payment\Contracts\GatewayDriverContract;
+    public function setCredentials(Credentials $credentials): GatewayDriverContract;
 }

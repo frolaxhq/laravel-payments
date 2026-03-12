@@ -24,9 +24,10 @@ class PaymentFake extends Payment
 
     protected function getRecorded(): \ArrayObject
     {
-        if (!app()->has('payment_fake_records')) {
-            app()->instance('payment_fake_records', new \ArrayObject());
+        if (! app()->has('payment_fake_records')) {
+            app()->instance('payment_fake_records', new \ArrayObject);
         }
+
         return app('payment_fake_records');
     }
 

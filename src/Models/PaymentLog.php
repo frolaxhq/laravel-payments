@@ -5,6 +5,7 @@ namespace Frolax\Payment\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * @property string $id
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $level
  * @property array<string, mixed>|null $context_flat
  * @property array<string, mixed>|null $context_nested
- * @property \Illuminate\Support\Carbon|null $occurred_at
+ * @property Carbon|null $occurred_at
  */
 class PaymentLog extends Model
 {

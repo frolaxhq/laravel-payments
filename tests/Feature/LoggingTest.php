@@ -5,6 +5,7 @@ use Frolax\Payment\Models\PaymentLog;
 use Frolax\Payment\PaymentConfig;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 uses(RefreshDatabase::class);
 
@@ -86,7 +87,7 @@ test('logger gracefully catches DB exception and writes to Log channel', functio
     $logger = new PaymentLogger($config);
 
     // Force DB exception by pointing to fake table
-    \Illuminate\Support\Facades\Schema::dropIfExists(config('payments.tables.logs', 'payment_logs'));
+    Schema::dropIfExists(config('payments.tables.logs', 'payment_logs'));
 
-    expect(fn () => $logger->info('cat', 'msg'))->not->toThrow(\Throwable::class);
+    expect(fn () => $logger->info('cat', 'msg'))->not->toThrow(Throwable::class);
 });

@@ -33,7 +33,7 @@ test('registry registers and resolves a gateway', function () {
             return new GatewayResult(status: PaymentStatus::Completed);
         }
 
-        public function setCredentials(Credentials $credentials): \Frolax\Payment\Contracts\GatewayDriverContract
+        public function setCredentials(Credentials $credentials): GatewayDriverContract
         {
             return $this;
         }

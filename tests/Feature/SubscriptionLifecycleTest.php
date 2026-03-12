@@ -22,7 +22,8 @@ use Illuminate\Support\Facades\Event;
 
 function createRecurringDriver(): GatewayDriverContract|SupportsRecurring
 {
-    return new class implements GatewayDriverContract, SupportsRecurring {
+    return new class implements GatewayDriverContract, SupportsRecurring
+    {
         public function name(): string
         {
             return 'recurring_mock';
@@ -30,7 +31,7 @@ function createRecurringDriver(): GatewayDriverContract|SupportsRecurring
 
         public function create(Payload $payload, Credentials $credentials): GatewayResult
         {
-            return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: 'GW-' . uniqid());
+            return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: 'GW-'.uniqid());
         }
 
         public function verify(Request $request, Credentials $credentials): GatewayResult
@@ -50,7 +51,7 @@ function createRecurringDriver(): GatewayDriverContract|SupportsRecurring
 
         public function createSubscription(SubscriptionPayload $payload, Credentials $credentials): GatewayResult
         {
-            return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: 'sub_' . uniqid());
+            return new GatewayResult(status: PaymentStatus::Completed, gatewayReference: 'sub_'.uniqid());
         }
 
         public function cancelSubscription(string $subscriptionId, Credentials $credentials): GatewayResult
@@ -83,7 +84,7 @@ function createRecurringDriver(): GatewayDriverContract|SupportsRecurring
 function setupRecurringGateway(): void
 {
     $registry = app(GatewayRegistry::class);
-    $registry->register('recurring_mock', fn() => createRecurringDriver(), 'Mock Recurring', ['recurring']);
+    $registry->register('recurring_mock', fn () => createRecurringDriver(), 'Mock Recurring', ['recurring']);
     config()->set('payments.gateways.recurring_mock.test', ['key' => 'test_key']);
 }
 
@@ -252,20 +253,20 @@ test('subscription throws for non-recurring gateway on all endpoints', function 
     $nonRecurringDriver->shouldReceive('name')->andReturn('simple');
 
     $registry = app(GatewayRegistry::class);
-    $registry->register('simple', fn() => $nonRecurringDriver);
+    $registry->register('simple', fn () => $nonRecurringDriver);
 
     $payment = app(Payment::class)->gateway('simple');
 
-    expect(fn() => $payment->subscribe([
+    expect(fn () => $payment->subscribe([
         'plan' => ['id' => '1', 'name' => 'A', 'interval' => 'monthly', 'interval_count' => 1, 'money' => ['amount' => 10, 'currency' => 'USD']],
     ]))->toThrow(UnsupportedCapabilityException::class)
-        ->and(fn() => $payment->pauseSubscription('x'))
+        ->and(fn () => $payment->pauseSubscription('x'))
         ->toThrow(UnsupportedCapabilityException::class)
-        ->and(fn() => $payment->resumeSubscription('x'))
+        ->and(fn () => $payment->resumeSubscription('x'))
         ->toThrow(UnsupportedCapabilityException::class)
-        ->and(fn() => $payment->cancelSubscription('x'))
+        ->and(fn () => $payment->cancelSubscription('x'))
         ->toThrow(UnsupportedCapabilityException::class)
-        ->and(fn() => $payment->updateSubscription('x', []))
+        ->and(fn () => $payment->updateSubscription('x', []))
         ->toThrow(UnsupportedCapabilityException::class);
 
 });

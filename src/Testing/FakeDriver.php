@@ -14,6 +14,7 @@ use Frolax\Payment\Data\StatusPayload;
 use Frolax\Payment\Data\SubscriptionPayload;
 use Frolax\Payment\Enums\PaymentStatus;
 use Illuminate\Http\Request;
+use PHPUnit\Framework\Assert;
 
 /**
  * A universal fake driver for testing.
@@ -141,7 +142,7 @@ class FakeDriver implements GatewayDriverContract, SupportsRecurring, SupportsRe
         return $this->resolveResult();
     }
 
-    public function setCredentials(Credentials $credentials): \Frolax\Payment\Contracts\GatewayDriverContract
+    public function setCredentials(Credentials $credentials): GatewayDriverContract
     {
         return $this;
     }
@@ -160,7 +161,7 @@ class FakeDriver implements GatewayDriverContract, SupportsRecurring, SupportsRe
     {
         $actual = count($this->callsTo($method));
 
-        \PHPUnit\Framework\Assert::assertSame(
+        Assert::assertSame(
             $times,
             $actual,
             "Expected [{$method}] to be called [{$times}] times, got [{$actual}]."

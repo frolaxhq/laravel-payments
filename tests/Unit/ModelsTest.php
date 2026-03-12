@@ -1,7 +1,15 @@
 <?php
 
+use Frolax\Payment\Contracts\GatewayDriverContract;
+use Frolax\Payment\Enums\SubscriptionStatus;
+use Frolax\Payment\GatewayRegistry;
+use Frolax\Payment\Models\PaymentGateway;
+use Frolax\Payment\Models\PaymentMethod;
 use Frolax\Payment\Models\PaymentWebhookEvent;
+use Frolax\Payment\Models\Subscription;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -15,7 +23,7 @@ test('all models can be instantiated and return correct table names', function (
         $className = $namespace.basename($file, '.php');
         $model = new $className;
 
-        expect($model)->toBeInstanceOf(\Illuminate\Database\Eloquent\Model::class);
+        expect($model)->toBeInstanceOf(Model::class);
         expect(is_string($model->getTable()))->toBeTrue();
     }
 });
@@ -39,7 +47,7 @@ test('all models relationships return valid relations', function () {
                 try {
                     $relation = $method->invoke($model);
                     expect($relation)->toBeInstanceOf(Relation::class);
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     // Tolerate missing external App\ models
                     expect(true)->toBeTrue();
                 }
@@ -62,7 +70,7 @@ test('all models scopes execute without errors', function () {
                 continue;
             }
 
-            if (str_starts_with($method->getName(), 'scope') || ! empty($method->getAttributes(\Illuminate\Database\Eloquent\Attributes\Scope::class))) {
+            if (str_starts_with($method->getName(), 'scope') || ! empty($method->getAttributes(Scope::class))) {
                 $query = $model->newQuery();
                 $args = [];
 
@@ -101,7 +109,7 @@ test('all models scopes execute without errors', function () {
                     if ($result !== null) {
                         expect($result)->toBeInstanceOf(Builder::class);
                     }
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     // Similar to relations, tolerate missing dependencies
                     expect(true)->toBeTrue();
                 }
@@ -123,10 +131,10 @@ test('webhook event mark processed updates database correctly', function () {
 });
 
 test('payment gateway helper methods work', function () {
-    $registry = Mockery::mock(\Frolax\Payment\GatewayRegistry::class)->makePartial();
-    app()->instance(\Frolax\Payment\GatewayRegistry::class, $registry);
+    $registry = Mockery::mock(GatewayRegistry::class)->makePartial();
+    app()->instance(GatewayRegistry::class, $registry);
 
-    $gateway = new \Frolax\Payment\Models\PaymentGateway(['driver' => 'fake']);
+    $gateway = new PaymentGateway(['driver' => 'fake']);
 
     $registry->shouldReceive('hasCapability')->with('fake', 'cap')->andReturn(true);
     expect($gateway->supports('cap'))->toBeTrue();
@@ -134,13 +142,13 @@ test('payment gateway helper methods work', function () {
     $registry->shouldReceive('capabilities')->with('fake')->andReturn(['cap']);
     expect($gateway->capabilities())->toBe(['cap']);
 
-    $driverMock = Mockery::mock(\Frolax\Payment\Contracts\GatewayDriverContract::class);
+    $driverMock = Mockery::mock(GatewayDriverContract::class);
     $registry->shouldReceive('resolve')->with('fake')->andReturn($driverMock);
     expect($gateway->resolveDriver())->toBe($driverMock);
 });
 
 test('payment method helpers work', function () {
-    $method = new \Frolax\Payment\Models\PaymentMethod;
+    $method = new PaymentMethod;
     $method->expires_at = now()->subDay();
     expect($method->isExpired())->toBeTrue();
 
@@ -158,25 +166,25 @@ test('payment method helpers work', function () {
 });
 
 test('subscription helpers work', function () {
-    $sub = new \Frolax\Payment\Models\Subscription;
+    $sub = new Subscription;
 
-    $sub->status = \Frolax\Payment\Enums\SubscriptionStatus::Active;
+    $sub->status = SubscriptionStatus::Active;
     expect($sub->isActive())->toBeTrue();
 
-    $sub->status = \Frolax\Payment\Enums\SubscriptionStatus::Trialing;
+    $sub->status = SubscriptionStatus::Trialing;
     $sub->trial_ends_at = now()->addDay();
     expect($sub->onTrial())->toBeTrue();
 
-    $sub->status = \Frolax\Payment\Enums\SubscriptionStatus::Cancelled;
+    $sub->status = SubscriptionStatus::Cancelled;
     $sub->ends_at = now()->addDay();
     expect($sub->onGracePeriod())->toBeTrue();
 
-    $sub->status = \Frolax\Payment\Enums\SubscriptionStatus::PastDue;
+    $sub->status = SubscriptionStatus::PastDue;
     expect($sub->isPastDue())->toBeTrue();
 
-    $sub->status = \Frolax\Payment\Enums\SubscriptionStatus::Paused;
+    $sub->status = SubscriptionStatus::Paused;
     expect($sub->isPaused())->toBeTrue();
 
-    $sub->status = \Frolax\Payment\Enums\SubscriptionStatus::Cancelled;
+    $sub->status = SubscriptionStatus::Cancelled;
     expect($sub->isCancelled())->toBeTrue();
 });

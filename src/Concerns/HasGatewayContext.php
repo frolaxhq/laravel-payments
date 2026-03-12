@@ -42,8 +42,6 @@ trait HasGatewayContext
         return $clone;
     }
 
-    /**
-     */
     public function usingContext(array $context): static
     {
         $clone = clone $this;

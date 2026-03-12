@@ -9,6 +9,11 @@ use Frolax\Payment\Contracts\SupportsStatusQuery;
 use Frolax\Payment\Data\Credentials;
 use Frolax\Payment\Data\GatewayResult;
 use Frolax\Payment\Enums\PaymentStatus;
+use Frolax\Payment\Enums\RefundStatus;
+use Frolax\Payment\Enums\SubscriptionStatus;
+use Frolax\Payment\Events\PaymentRefunded;
+use Frolax\Payment\Events\PaymentRefundRequested;
+use Frolax\Payment\Events\PaymentVerified;
 use Frolax\Payment\Exceptions\UnsupportedCapabilityException;
 use Frolax\Payment\GatewayRegistry;
 use Frolax\Payment\Models\PaymentModel;
@@ -118,7 +123,7 @@ test('payment verifyFromRequest updates status and dispatches event on success',
 
     expect($result->status)->toBe(PaymentStatus::Completed);
     expect(PaymentModel::first()->status)->toBe(PaymentStatus::Completed);
-    Event::assertDispatched(\Frolax\Payment\Events\PaymentVerified::class);
+    Event::assertDispatched(PaymentVerified::class);
 });
 
 test('payment verifyFromRequest handles failure', function () {
@@ -136,7 +141,7 @@ test('payment verifyFromRequest handles failure', function () {
     $result = $payment->gateway('fake')->verifyFromRequest($request);
 
     expect($result->status)->toBe(PaymentStatus::Failed);
-    Event::assertNotDispatched(\Frolax\Payment\Events\PaymentVerified::class);
+    Event::assertNotDispatched(PaymentVerified::class);
 });
 
 test('payment status throws if unsupported', function () {
@@ -203,10 +208,10 @@ test('refund manager processes refund', function () {
 
     $refund = PaymentRefund::first();
     expect($refund->payment_id)->toBe('p_1');
-    expect($refund->status)->toBe(\Frolax\Payment\Enums\RefundStatus::Completed);
+    expect($refund->status)->toBe(RefundStatus::Completed);
 
-    Event::assertDispatched(\Frolax\Payment\Events\PaymentRefundRequested::class);
-    Event::assertDispatched(\Frolax\Payment\Events\PaymentRefunded::class);
+    Event::assertDispatched(PaymentRefundRequested::class);
+    Event::assertDispatched(PaymentRefunded::class);
 });
 
 test('refund manager fails and logs on exception', function () {
@@ -219,7 +224,7 @@ test('refund manager fails and logs on exception', function () {
     $this->registry->shouldReceive('resolve')->with('fake')->andReturn($driver);
     $this->credentialsRepo->shouldReceive('get')->with('fake', 'default', [])->andReturn($this->credentials);
 
-    $driver->shouldReceive('refund')->andThrow(new \Exception('refund fail'));
+    $driver->shouldReceive('refund')->andThrow(new Exception('refund fail'));
 
     try {
         $manager->gateway('fake')->refund([
@@ -228,12 +233,12 @@ test('refund manager fails and logs on exception', function () {
             'money' => ['amount' => 10, 'currency' => 'USD'],
         ]);
         $this->fail();
-    } catch (\Exception $e) {
+    } catch (Exception $e) {
         expect($e->getMessage())->toBe('refund fail');
     }
 
     $refund = PaymentRefund::first();
-    expect($refund->status)->toBe(\Frolax\Payment\Enums\RefundStatus::Failed);
+    expect($refund->status)->toBe(RefundStatus::Failed);
 });
 
 test('subscription manager delegates to driver', function () {
@@ -256,15 +261,15 @@ test('subscription manager delegates to driver', function () {
     expect($res->gatewayReference)->toBe('sub_1');
 
     $sub = Subscription::first();
-    expect($sub->status)->toBe(\Frolax\Payment\Enums\SubscriptionStatus::Trialing);
+    expect($sub->status)->toBe(SubscriptionStatus::Trialing);
 
     $driver->shouldReceive('pauseSubscription')->with('sub_1', $this->credentials)->andReturn($result);
     $manager->gateway('fake')->pause($sub->id);
-    expect($sub->fresh()->status)->toBe(\Frolax\Payment\Enums\SubscriptionStatus::Paused);
+    expect($sub->fresh()->status)->toBe(SubscriptionStatus::Paused);
 
     $driver->shouldReceive('resumeSubscription')->with('sub_1', $this->credentials)->andReturn($result);
     $manager->gateway('fake')->resume($sub->id);
-    expect($sub->fresh()->status)->toBe(\Frolax\Payment\Enums\SubscriptionStatus::Active);
+    expect($sub->fresh()->status)->toBe(SubscriptionStatus::Active);
 
     $driver->shouldReceive('updateSubscription')->with('sub_1', ['quantity' => 2], $this->credentials)->andReturn($result);
     $manager->gateway('fake')->update($sub->id, ['quantity' => 2]);
@@ -272,7 +277,7 @@ test('subscription manager delegates to driver', function () {
 
     $driver->shouldReceive('cancelSubscription')->with('sub_1', $this->credentials)->andReturn($result);
     $manager->gateway('fake')->cancel($sub->id, true);
-    expect($sub->fresh()->status)->toBe(\Frolax\Payment\Enums\SubscriptionStatus::Cancelled);
+    expect($sub->fresh()->status)->toBe(SubscriptionStatus::Cancelled);
 });
 
 test('payment delegates sub and refund', function () {

@@ -8,6 +8,7 @@ use Frolax\Payment\Data\Money;
 use Frolax\Payment\Data\Order;
 use Frolax\Payment\Data\Payload;
 use Frolax\Payment\Data\Urls;
+use Frolax\Payment\Enums\AttemptStatus;
 use Frolax\Payment\Enums\PaymentStatus;
 use Frolax\Payment\Events\PaymentCreated;
 use Frolax\Payment\Events\PaymentFailed;
@@ -154,13 +155,13 @@ test('dispatch event throws and dispatches failed on exception', function () {
     $step = new DispatchPaymentEvent;
     $context = createTestContext([
         'paymentId' => 'pay_1',
-        'exception' => new \Exception('Failed step'),
+        'exception' => new Exception('Failed step'),
     ]);
 
     try {
         $step->handle($context, fn ($ctx) => 'next');
         $this->fail('Exception not re-thrown');
-    } catch (\Exception $e) {
+    } catch (Exception $e) {
         expect($e->getMessage())->toBe('Failed step');
     }
 
@@ -211,14 +212,14 @@ test('execute gateway call catches exceptions', function () {
     $logger->shouldReceive('info')->once();
 
     $driver = Mockery::mock(GatewayDriverContract::class);
-    $driver->shouldReceive('create')->andThrow(new \Exception('Driver err'));
+    $driver->shouldReceive('create')->andThrow(new Exception('Driver err'));
 
     $step = new ExecuteGatewayCall($logger);
     $context = createTestContext(['driver' => $driver]);
 
     $result = $step->handle($context, fn ($ctx) => $ctx);
 
-    expect($result->exception)->toBeInstanceOf(\Exception::class);
+    expect($result->exception)->toBeInstanceOf(Exception::class);
     expect($result->exception->getMessage())->toBe('Driver err');
 });
 
@@ -242,14 +243,14 @@ test('persist attempt saves error attempt', function () {
     $step = new PersistAttempt($config);
     $context = createTestContext([
         'paymentId' => 'pay_1',
-        'exception' => new \RuntimeException('test_err', 123),
+        'exception' => new RuntimeException('test_err', 123),
     ]);
 
     $step->handle($context, fn ($ctx) => $ctx);
 
     $attempt = PaymentAttempt::first();
     expect($attempt->payment_id)->toBe('pay_1');
-    expect($attempt->status)->toBe(\Frolax\Payment\Enums\AttemptStatus::Error);
+    expect($attempt->status)->toBe(AttemptStatus::Error);
     expect($attempt->errors['message'])->toBe('test_err');
 });
 
@@ -267,7 +268,7 @@ test('persist attempt saves success attempt', function () {
 
     $attempt = PaymentAttempt::first();
     expect($attempt->payment_id)->toBe('pay_1');
-    expect($attempt->status)->toBe(\Frolax\Payment\Enums\AttemptStatus::Succeeded);
+    expect($attempt->status)->toBe(AttemptStatus::Succeeded);
 });
 
 // ── PersistPaymentRecord ──
@@ -309,7 +310,7 @@ test('update status processes exception correctly', function () {
     $step = new UpdatePaymentStatus($config, $logger);
     $context = createTestContext([
         'paymentId' => $paymentId,
-        'exception' => new \Exception('fail2'),
+        'exception' => new Exception('fail2'),
     ]);
 
     $step->handle($context, fn ($ctx) => 'next');

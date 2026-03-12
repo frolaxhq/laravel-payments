@@ -1,5 +1,8 @@
 <?php
 
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Events\Dispatchable;
+
 // Architecture tests
 
 arch('contracts are interfaces')
@@ -21,11 +24,11 @@ arch('exceptions extend RuntimeException or Exception')
 
 arch('events use Dispatchable trait')
     ->expect('Frolax\Payment\Events')
-    ->toUseTrait(Illuminate\Foundation\Events\Dispatchable::class);
+    ->toUseTrait(Dispatchable::class);
 
 arch('models extend Eloquent Model')
     ->expect('Frolax\Payment\Models')
-    ->toExtend(Illuminate\Database\Eloquent\Model::class);
+    ->toExtend(Model::class);
 
 arch('core does not reference gateway-specific names')
     ->expect('Frolax\Payment')

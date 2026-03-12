@@ -1,8 +1,14 @@
 <?php
 
+use Frolax\Payment\Contracts\CredentialsRepositoryContract;
+use Frolax\Payment\Contracts\GatewayDriverContract;
 use Frolax\Payment\Contracts\PaymentLoggerContract;
+use Frolax\Payment\Contracts\SupportsWebhookVerification;
+use Frolax\Payment\Data\Credentials;
 use Frolax\Payment\Data\GatewayResult;
+use Frolax\Payment\Data\WebhookData;
 use Frolax\Payment\Enums\PaymentStatus;
+use Frolax\Payment\Enums\WebhookEventType;
 use Frolax\Payment\Events\PaymentCancelled;
 use Frolax\Payment\Events\WebhookReceived;
 use Frolax\Payment\GatewayRegistry;
@@ -13,6 +19,7 @@ use Frolax\Payment\Models\PaymentModel;
 use Frolax\Payment\Models\PaymentWebhookEvent;
 use Frolax\Payment\Payment;
 use Frolax\Payment\PaymentConfig;
+use Frolax\Payment\Testing\FakeDriver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
@@ -62,7 +69,7 @@ test('cancel controller persists cancellation and fires event', function () {
 
 test('return controller verifies payment and logs correctly', function () {
     $paymentManager = Mockery::mock(Payment::class);
-    $gateway = Mockery::mock(\Frolax\Payment\Contracts\GatewayDriverContract::class);
+    $gateway = Mockery::mock(GatewayDriverContract::class);
     $paymentManager->shouldReceive('gateway')->with('fake')->andReturn($gateway);
 
     $result = new GatewayResult(PaymentStatus::Completed);
@@ -78,7 +85,7 @@ test('return controller verifies payment and logs correctly', function () {
 
 test('return controller handles verification exception', function () {
     $paymentManager = Mockery::mock(Payment::class);
-    $gateway = Mockery::mock(\Frolax\Payment\Contracts\GatewayDriverContract::class);
+    $gateway = Mockery::mock(GatewayDriverContract::class);
     $paymentManager->shouldReceive('gateway')->with('fake')->andReturn($gateway);
 
     $gateway->shouldReceive('verifyFromRequest')->andThrow(new Exception('Verify failed'));
@@ -96,25 +103,25 @@ test('webhook controller handles invalid signature', function () {
     $config = app(PaymentConfig::class);
 
     // FakeDriver supports WebhookVerification
-    $registry->register('fake', \Frolax\Payment\Testing\FakeDriver::class);
+    $registry->register('fake', FakeDriver::class);
     $driver = $registry->resolve('fake');
     // Mock a generic driver implementing both interfaces
     $mockDriver = Mockery::mock(
-        \Frolax\Payment\Contracts\GatewayDriverContract::class,
-        \Frolax\Payment\Contracts\SupportsWebhookVerification::class
+        GatewayDriverContract::class,
+        SupportsWebhookVerification::class
     );
     $mockDriver->shouldReceive('verifyWebhookSignature')->andReturn(false);
     // Since signature verify returns false, it actually returns early inside the controller,
     // but we can mock parseWebhookData just in case if the implementation changed.
-    $mockDriver->shouldReceive('parseWebhookData')->andReturn(new \Frolax\Payment\Data\WebhookData(\Frolax\Payment\Enums\WebhookEventType::Unknown, 'fake', 'event', 'ref'));
+    $mockDriver->shouldReceive('parseWebhookData')->andReturn(new WebhookData(WebhookEventType::Unknown, 'fake', 'event', 'ref'));
 
     $registryMock = Mockery::mock(GatewayRegistry::class)->makePartial();
     $registryMock->shouldReceive('resolve')->with('fake')->andReturn($mockDriver);
 
     // Mock Credentials Repo so it returns true
-    $credsRepo = Mockery::mock(\Frolax\Payment\Contracts\CredentialsRepositoryContract::class);
-    $credsRepo->shouldReceive('get')->andReturn(new \Frolax\Payment\Data\Credentials('fake', 'test', ['key' => 'secret']));
-    app()->instance(\Frolax\Payment\Contracts\CredentialsRepositoryContract::class, $credsRepo);
+    $credsRepo = Mockery::mock(CredentialsRepositoryContract::class);
+    $credsRepo->shouldReceive('get')->andReturn(new Credentials('fake', 'test', ['key' => 'secret']));
+    app()->instance(CredentialsRepositoryContract::class, $credsRepo);
 
     $controller = new WebhookController;
     $request = Request::create('/webhook', 'POST', ['some' => 'data']);
@@ -140,19 +147,19 @@ test('webhook controller handles full valid webhook cycle', function () {
     ]);
 
     $mockDriver = Mockery::mock(
-        \Frolax\Payment\Contracts\GatewayDriverContract::class,
-        \Frolax\Payment\Contracts\SupportsWebhookVerification::class
+        GatewayDriverContract::class,
+        SupportsWebhookVerification::class
     );
     $mockDriver->shouldReceive('verifyWebhookSignature')->andReturn(true);
-    $mockDriver->shouldReceive('parseWebhookData')->andReturn(new \Frolax\Payment\Data\WebhookData(canonicalEvent: \Frolax\Payment\Enums\WebhookEventType::PaymentCompleted, gateway: 'fake', gatewayEventType: 'payment.success', gatewayReference: 'ref_abc'));
-    $mockDriver->shouldReceive('handleWebhook')->andReturn(new \Frolax\Payment\Data\WebhookData(canonicalEvent: \Frolax\Payment\Enums\WebhookEventType::PaymentCompleted, gateway: 'fake', gatewayEventType: 'payment.success', gatewayReference: 'ref_abc', paymentStatus: PaymentStatus::Completed));
+    $mockDriver->shouldReceive('parseWebhookData')->andReturn(new WebhookData(canonicalEvent: WebhookEventType::PaymentCompleted, gateway: 'fake', gatewayEventType: 'payment.success', gatewayReference: 'ref_abc'));
+    $mockDriver->shouldReceive('handleWebhook')->andReturn(new WebhookData(canonicalEvent: WebhookEventType::PaymentCompleted, gateway: 'fake', gatewayEventType: 'payment.success', gatewayReference: 'ref_abc', paymentStatus: PaymentStatus::Completed));
 
     $registryMock = Mockery::mock(GatewayRegistry::class)->makePartial();
     $registryMock->shouldReceive('resolve')->with('fake')->andReturn($mockDriver);
 
-    $credsRepo = Mockery::mock(\Frolax\Payment\Contracts\CredentialsRepositoryContract::class);
-    $credsRepo->shouldReceive('get')->andReturn(new \Frolax\Payment\Data\Credentials('fake', 'test', []));
-    app()->instance(\Frolax\Payment\Contracts\CredentialsRepositoryContract::class, $credsRepo);
+    $credsRepo = Mockery::mock(CredentialsRepositoryContract::class);
+    $credsRepo->shouldReceive('get')->andReturn(new Credentials('fake', 'test', []));
+    app()->instance(CredentialsRepositoryContract::class, $credsRepo);
 
     $config = app(PaymentConfig::class);
     $controller = new WebhookController;
@@ -178,23 +185,23 @@ test('webhook controller returns early if already processed', function () {
         'id' => 'evt_1',
         'gateway_name' => 'fake',
         'gateway_reference' => 'ref_already',
-        'event_type' => \Frolax\Payment\Enums\WebhookEventType::PaymentCompleted->value,
+        'event_type' => WebhookEventType::PaymentCompleted->value,
         'processed' => true,
     ]);
 
     $mockDriver = Mockery::mock(
-        \Frolax\Payment\Contracts\GatewayDriverContract::class,
-        \Frolax\Payment\Contracts\SupportsWebhookVerification::class
+        GatewayDriverContract::class,
+        SupportsWebhookVerification::class
     );
     $mockDriver->shouldReceive('verifyWebhookSignature')->andReturn(true);
-    $mockDriver->shouldReceive('parseWebhookData')->andReturn(new \Frolax\Payment\Data\WebhookData(canonicalEvent: \Frolax\Payment\Enums\WebhookEventType::PaymentCompleted, gateway: 'fake', gatewayEventType: 'payment.success', gatewayReference: 'ref_already'));
+    $mockDriver->shouldReceive('parseWebhookData')->andReturn(new WebhookData(canonicalEvent: WebhookEventType::PaymentCompleted, gateway: 'fake', gatewayEventType: 'payment.success', gatewayReference: 'ref_already'));
 
     $registryMock = Mockery::mock(GatewayRegistry::class)->makePartial();
     $registryMock->shouldReceive('resolve')->with('fake')->andReturn($mockDriver);
 
-    $credsRepo = Mockery::mock(\Frolax\Payment\Contracts\CredentialsRepositoryContract::class);
-    $credsRepo->shouldReceive('get')->andReturn(new \Frolax\Payment\Data\Credentials('fake', 'test', []));
-    app()->instance(\Frolax\Payment\Contracts\CredentialsRepositoryContract::class, $credsRepo);
+    $credsRepo = Mockery::mock(CredentialsRepositoryContract::class);
+    $credsRepo->shouldReceive('get')->andReturn(new Credentials('fake', 'test', []));
+    app()->instance(CredentialsRepositoryContract::class, $credsRepo);
 
     $config = app(PaymentConfig::class);
     $controller = new WebhookController;
@@ -208,19 +215,19 @@ test('webhook controller returns early if already processed', function () {
 
 test('webhook controller handles verify exception', function () {
     $mockDriver = Mockery::mock(
-        \Frolax\Payment\Contracts\GatewayDriverContract::class,
-        \Frolax\Payment\Contracts\SupportsWebhookVerification::class
+        GatewayDriverContract::class,
+        SupportsWebhookVerification::class
     );
     $mockDriver->shouldReceive('verifyWebhookSignature')->andReturn(true);
-    $mockDriver->shouldReceive('parseWebhookData')->andReturn(new \Frolax\Payment\Data\WebhookData(canonicalEvent: \Frolax\Payment\Enums\WebhookEventType::PaymentCompleted, gateway: 'fake', gatewayEventType: 'payment.success', gatewayReference: 'ref_err'));
+    $mockDriver->shouldReceive('parseWebhookData')->andReturn(new WebhookData(canonicalEvent: WebhookEventType::PaymentCompleted, gateway: 'fake', gatewayEventType: 'payment.success', gatewayReference: 'ref_err'));
     $mockDriver->shouldReceive('handleWebhook')->andThrow(new Exception('Webhook error'));
 
     $registryMock = Mockery::mock(GatewayRegistry::class)->makePartial();
     $registryMock->shouldReceive('resolve')->with('fake')->andReturn($mockDriver);
 
-    $credsRepo = Mockery::mock(\Frolax\Payment\Contracts\CredentialsRepositoryContract::class);
-    $credsRepo->shouldReceive('get')->andReturn(new \Frolax\Payment\Data\Credentials('fake', 'test', []));
-    app()->instance(\Frolax\Payment\Contracts\CredentialsRepositoryContract::class, $credsRepo);
+    $credsRepo = Mockery::mock(CredentialsRepositoryContract::class);
+    $credsRepo->shouldReceive('get')->andReturn(new Credentials('fake', 'test', []));
+    app()->instance(CredentialsRepositoryContract::class, $credsRepo);
 
     $config = app(PaymentConfig::class);
     $controller = new WebhookController;

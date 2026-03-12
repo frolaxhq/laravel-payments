@@ -2,6 +2,8 @@
 
 namespace Frolax\Payment\Data;
 
+use Illuminate\Support\Str;
+
 final readonly class RefundPayload
 {
     public function __construct(
@@ -19,7 +21,7 @@ final readonly class RefundPayload
             paymentId: $data['payment_id'] ?? throw new \InvalidArgumentException('payment_id is required.'),
             money: Money::fromArray($data['money'] ?? throw new \InvalidArgumentException('Money is required.')),
             reason: $data['reason'] ?? null,
-            idempotencyKey: $data['idempotency_key'] ?? (string) \Illuminate\Support\Str::ulid(),
+            idempotencyKey: $data['idempotency_key'] ?? (string) Str::ulid(),
             metadata: $data['metadata'] ?? [],
             extra: $data['extra'] ?? [],
         );

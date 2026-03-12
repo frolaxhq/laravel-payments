@@ -4,6 +4,7 @@ namespace Frolax\Payment\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 /**
  * @property string $id
@@ -13,10 +14,10 @@ use Illuminate\Database\Eloquent\Model;
  * @property array<string, mixed> $credentials
  * @property bool $is_active
  * @property int $priority
- * @property \Illuminate\Support\Carbon|null $effective_from
- * @property \Illuminate\Support\Carbon|null $effective_to
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property Carbon|null $effective_from
+ * @property Carbon|null $effective_to
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  */
 class PaymentGatewayCredential extends Model
 {

@@ -13,8 +13,6 @@ interface SupportsWebhookVerification
      */
     public function verifyWebhookSignature(Request $request, Credentials $credentials): bool;
 
-
-
     /**
      * Parse the webhook request into a canonical WebhookData DTO.
      */
