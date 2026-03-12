@@ -33,7 +33,7 @@ class SchemaValidator
                 $errors[] = [
                     'field' => $field,
                     'rule' => 'required',
-                    'message' => "The field [{$field}] is required.",
+                    'message' => "The field [$field] is required.",
                 ];
             }
         }
@@ -63,7 +63,7 @@ class SchemaValidator
                     $errors[] = [
                         'field' => $field,
                         'rule' => 'required',
-                        'message' => "Gateway [{$gateway}] requires the field [{$field}].",
+                        'message' => "Gateway [$gateway] requires the field [$field].",
                     ];
                 }
             }

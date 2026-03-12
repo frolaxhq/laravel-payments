@@ -5,7 +5,6 @@ namespace Frolax\Payment\Credentials;
 use Frolax\Payment\Contracts\CredentialsRepositoryContract;
 use Frolax\Payment\Data\Credentials;
 use Frolax\Payment\Models\PaymentGatewayCredential;
-use Illuminate\Support\Facades\Crypt;
 
 class DatabaseCredentialsRepository implements CredentialsRepositoryContract
 {
@@ -51,13 +50,16 @@ class DatabaseCredentialsRepository implements CredentialsRepositoryContract
             return null;
         }
 
-        // Decrypt the credentials JSON
-        $credentials = $this->decryptCredentials($record->credentials);
+        // The PaymentGatewayCredential model uses encrypted:array cast
+        // on the credentials column — Laravel handles decryption automatically.
+        // No manual Crypt:: calls needed.
+        /** @var array<string, mixed> $credentials */
+        $credentials = $record->credentials;
 
         return new Credentials(
             gateway: $gateway,
             profile: $profile,
-            credentials: $credentials,
+            credentials: is_array($credentials) ? $credentials : [],
             tenantId: $record->tenant_id,
             label: $record->label,
         );
@@ -67,24 +69,5 @@ class DatabaseCredentialsRepository implements CredentialsRepositoryContract
     {
         return $this->get($gateway, $profile, $context) !== null;
     }
-
-    protected function decryptCredentials(mixed $value): array
-    {
-        if (is_string($value)) {
-            try {
-                $decrypted = Crypt::decryptString($value);
-
-                return json_decode($decrypted, true) ?: [];
-            } catch (\Throwable) {
-                // Might already be a JSON string (not encrypted)
-                return json_decode($value, true) ?: [];
-            }
-        }
-
-        if (is_array($value)) {
-            return $value;
-        }
-
-        return [];
-    }
 }
+

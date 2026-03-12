@@ -140,10 +140,26 @@ return [
     'tables' => [
         'gateways' => 'payment_gateways',
         'credentials' => 'payment_gateway_credentials',
+        'methods' => 'payment_methods',
         'payments' => 'payments',
         'attempts' => 'payment_attempts',
         'webhooks' => 'payment_webhook_events',
         'refunds' => 'payment_refunds',
         'logs' => 'payment_logs',
+        'subscriptions' => 'payment_subscriptions',
+        'subscription_items' => 'payment_subscription_items',
+        'subscription_usage' => 'payment_subscription_usage',
+    ],
+
+    /*
+     |--------------------------------------------------------------------------
+     | Models
+     |--------------------------------------------------------------------------
+     |
+     | Configurable model class mappings.
+     |
+     */
+    'models' => [
+        'plan' => 'App\\Models\\Plan',
     ],
 ];

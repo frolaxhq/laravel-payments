@@ -6,6 +6,20 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property string $id
+ * @property string $gateway_name
+ * @property string|null $payment_id
+ * @property string|null $event_type
+ * @property string|null $gateway_reference
+ * @property array<string, mixed>|null $headers
+ * @property array<string, mixed>|null $payload
+ * @property bool $signature_valid
+ * @property bool $processed
+ * @property \Illuminate\Support\Carbon|null $processed_at
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ */
 class PaymentWebhookEvent extends Model
 {
     use HasUlids;

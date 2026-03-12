@@ -12,6 +12,7 @@ use Frolax\Payment\Enums\RefundStatus;
 use Frolax\Payment\Events\PaymentRefunded;
 use Frolax\Payment\Events\PaymentRefundRequested;
 use Frolax\Payment\Exceptions\UnsupportedCapabilityException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class RefundManager
@@ -62,16 +63,18 @@ class RefundManager
         $refundId = (string) Str::ulid();
 
         if ($this->config->shouldPersistRefunds()) {
-            Models\PaymentRefund::create([
-                'id' => $refundId,
-                'payment_id' => $payload->paymentId,
-                'amount' => $payload->money->amount,
-                'currency' => $payload->money->currency,
-                'status' => RefundStatus::Pending->value,
-                'reason' => $payload->reason,
-                'request_payload' => $payload->toArray(),
-                'metadata' => $payload->metadata,
-            ]);
+            DB::transaction(function () use ($refundId, $payload) {
+                Models\PaymentRefund::create([
+                    'id' => $refundId,
+                    'payment_id' => $payload->paymentId,
+                    'amount' => $payload->money->amount,
+                    'currency' => $payload->money->currency,
+                    'status' => RefundStatus::Pending->value,
+                    'reason' => $payload->reason,
+                    'request_payload' => $payload->toArray(),
+                    'metadata' => $payload->metadata,
+                ]);
+            });
         }
 
         $this->logger->info('payment.refund', "Refund requested for payment [{$payload->paymentId}] via [{$gateway}]", [
@@ -93,11 +96,13 @@ class RefundManager
             $result = $driver->refund($payload, $credentials);
 
             if ($this->config->shouldPersistRefunds()) {
-                Models\PaymentRefund::where('id', $refundId)->update([
-                    'status' => $result->isSuccessful() ? RefundStatus::Completed->value : RefundStatus::Failed->value,
-                    'refund_reference' => $result->gatewayReference,
-                    'response_payload' => $result->gatewayResponse,
-                ]);
+                DB::transaction(function () use ($refundId, $result) {
+                    Models\PaymentRefund::where('id', $refundId)->update([
+                        'status' => $result->isSuccessful() ? RefundStatus::Completed->value : RefundStatus::Failed->value,
+                        'refund_reference' => $result->gatewayReference,
+                        'response_payload' => $result->gatewayResponse,
+                    ]);
+                });
             }
 
             event(new PaymentRefunded(
@@ -114,9 +119,11 @@ class RefundManager
 
         } catch (\Throwable $e) {
             if ($this->config->shouldPersistRefunds()) {
-                Models\PaymentRefund::where('id', $refundId)->update([
-                    'status' => RefundStatus::Failed->value,
-                ]);
+                DB::transaction(function () use ($refundId) {
+                    Models\PaymentRefund::where('id', $refundId)->update([
+                        'status' => RefundStatus::Failed->value,
+                    ]);
+                });
             }
 
             $this->logger->error('payment.refund.failed', "Refund failed: {$e->getMessage()}", [

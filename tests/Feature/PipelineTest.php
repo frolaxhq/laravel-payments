@@ -7,6 +7,7 @@ use Frolax\Payment\Data\GatewayResult;
 use Frolax\Payment\Data\Money;
 use Frolax\Payment\Data\Order;
 use Frolax\Payment\Data\Payload;
+use Frolax\Payment\Data\Urls;
 use Frolax\Payment\Enums\PaymentStatus;
 use Frolax\Payment\Events\PaymentCreated;
 use Frolax\Payment\Events\PaymentFailed;
@@ -14,11 +15,11 @@ use Frolax\Payment\Models\PaymentAttempt;
 use Frolax\Payment\Models\PaymentModel;
 use Frolax\Payment\PaymentConfig;
 use Frolax\Payment\Pipeline\PaymentContext;
-use Frolax\Payment\Pipeline\Steps\CheckIdempotency;
 use Frolax\Payment\Pipeline\Steps\DispatchPaymentEvent;
 use Frolax\Payment\Pipeline\Steps\ExecuteGatewayCall;
 use Frolax\Payment\Pipeline\Steps\PersistAttempt;
 use Frolax\Payment\Pipeline\Steps\PersistPaymentRecord;
+use Frolax\Payment\Pipeline\Steps\ResolveIdempotency;
 use Frolax\Payment\Pipeline\Steps\UpdatePaymentStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
@@ -26,44 +27,68 @@ use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
 
-function createTestContext(): PaymentContext
+function createTestContext(array $overrides = []): PaymentContext
 {
     $driver = Mockery::mock(GatewayDriverContract::class);
     $payload = new Payload(
         idempotencyKey: 'idemp_key_1',
         order: new Order('order_1', 'Order 1'),
         money: new Money(100.0, 'USD'),
-        urls: new \Frolax\Payment\Data\UrlsDTO('http://example.com/callback')
+        urls: new Urls('http://example.com/callback')
     );
     $credentials = new Credentials('fake', 'default', ['key' => 'test_key', 'secret' => 'test_secret']);
 
     return new PaymentContext(
-        gateway: 'fake_gateway',
-        profile: 'default',
-        driver: $driver,
-        payload: $payload,
-        credentials: $credentials,
-        tenantId: 'tenant_1'
+        gateway: $overrides['gateway'] ?? 'fake_gateway',
+        profile: $overrides['profile'] ?? 'default',
+        driver: $overrides['driver'] ?? $driver,
+        payload: $overrides['payload'] ?? $payload,
+        credentials: $overrides['credentials'] ?? $credentials,
+        tenantId: $overrides['tenantId'] ?? 'tenant_1',
+        paymentId: $overrides['paymentId'] ?? null,
+        attemptNo: $overrides['attemptNo'] ?? null,
+        result: $overrides['result'] ?? null,
+        startTime: $overrides['startTime'] ?? null,
+        elapsedMs: $overrides['elapsedMs'] ?? null,
+        exception: $overrides['exception'] ?? null,
     );
 }
+
+// ── PaymentContext Immutability ──
 
 test('payment context instantiates correctly', function () {
     $context = createTestContext();
     expect($context->gateway)->toBe('fake_gateway');
+    expect($context->profile)->toBe('default');
+    expect($context->paymentId)->toBeNull();
 });
 
-test('check idempotency skips if persistence disabled', function () {
+test('payment context with methods return new immutable instance', function () {
+    $context = createTestContext();
+
+    $withPayment = $context->withPaymentId('pay_123');
+    expect($withPayment->paymentId)->toBe('pay_123');
+    expect($context->paymentId)->toBeNull(); // original unchanged
+
+    $withResult = $withPayment->withResult(new GatewayResult(PaymentStatus::Completed, 'ref_1'));
+    expect($withResult->result->status)->toBe(PaymentStatus::Completed);
+    expect($withPayment->result)->toBeNull(); // previous unchanged
+});
+
+// ── ResolveIdempotency ──
+
+test('resolve idempotency skips if persistence disabled', function () {
     $config = Mockery::mock(PaymentConfig::class);
     $config->shouldReceive('shouldPersistPayments')->andReturnFalse();
 
-    $step = new CheckIdempotency($config);
+    $step = new ResolveIdempotency($config);
     $context = createTestContext();
 
     $result = $step->handle($context, fn ($ctx) => 'next');
     expect($result)->toBe('next');
 });
 
-test('check idempotency returns existing completed payment', function () {
+test('resolve idempotency returns existing completed payment', function () {
     $config = Mockery::mock(PaymentConfig::class);
     $config->shouldReceive('shouldPersistPayments')->andReturnTrue();
 
@@ -78,7 +103,7 @@ test('check idempotency returns existing completed payment', function () {
         'gateway_reference' => 'ref_123',
     ]);
 
-    $step = new CheckIdempotency($config);
+    $step = new ResolveIdempotency($config);
     $context = createTestContext();
 
     $result = $step->handle($context, fn ($ctx) => 'next');
@@ -87,13 +112,50 @@ test('check idempotency returns existing completed payment', function () {
     expect($result->result->gatewayReference)->toBe('ref_123');
 });
 
+test('resolve idempotency short-circuits on pending too (bug #2 fix)', function () {
+    $config = Mockery::mock(PaymentConfig::class);
+    $config->shouldReceive('shouldPersistPayments')->andReturnTrue();
+
+    PaymentModel::create([
+        'id' => (string) Str::ulid(),
+        'order_id' => 'order_1',
+        'gateway_name' => 'fake_gateway',
+        'idempotency_key' => 'idemp_key_1',
+        'amount' => 100.0,
+        'currency' => 'USD',
+        'status' => PaymentStatus::Pending,
+    ]);
+
+    $step = new ResolveIdempotency($config);
+    $context = createTestContext();
+
+    $result = $step->handle($context, fn ($ctx) => 'should_not_reach');
+    // Now short-circuits on pending — prevents duplicate DB inserts
+    expect($result)->toBeInstanceOf(PaymentContext::class);
+    expect($result->result->status)->toBe(PaymentStatus::Pending);
+});
+
+test('resolve idempotency continues if no existing payment found', function () {
+    $config = Mockery::mock(PaymentConfig::class);
+    $config->shouldReceive('shouldPersistPayments')->andReturnTrue();
+
+    $step = new ResolveIdempotency($config);
+    $context = createTestContext();
+
+    $result = $step->handle($context, fn ($ctx) => 'next');
+    expect($result)->toBe('next');
+});
+
+// ── DispatchPaymentEvent ──
+
 test('dispatch event throws and dispatches failed on exception', function () {
     Event::fake();
 
     $step = new DispatchPaymentEvent;
-    $context = createTestContext();
-    $context->paymentId = 'pay_1';
-    $context->exception = new \Exception('Failed step');
+    $context = createTestContext([
+        'paymentId' => 'pay_1',
+        'exception' => new \Exception('Failed step'),
+    ]);
 
     try {
         $step->handle($context, fn ($ctx) => 'next');
@@ -111,9 +173,10 @@ test('dispatch event dispatches created on success', function () {
     Event::fake();
 
     $step = new DispatchPaymentEvent;
-    $context = createTestContext();
-    $context->paymentId = 'pay_1';
-    $context->result = new GatewayResult(PaymentStatus::Completed, 'ref_1', 'redir_url');
+    $context = createTestContext([
+        'paymentId' => 'pay_1',
+        'result' => new GatewayResult(PaymentStatus::Completed, 'ref_1', 'redir_url'),
+    ]);
 
     $result = $step->handle($context, fn ($ctx) => 'next');
     expect($result)->toBe('next');
@@ -123,15 +186,18 @@ test('dispatch event dispatches created on success', function () {
     });
 });
 
+// ── ExecuteGatewayCall ──
+
 test('execute gateway call successfully creates payment', function () {
     $logger = Mockery::mock(PaymentLoggerContract::class);
     $logger->shouldReceive('info')->once();
 
-    $step = new ExecuteGatewayCall($logger);
-    $context = createTestContext();
-
     $expectedResult = new GatewayResult(PaymentStatus::Completed);
-    $context->driver->shouldReceive('create')->with($context->payload, $context->credentials)->andReturn($expectedResult);
+    $driver = Mockery::mock(GatewayDriverContract::class);
+    $driver->shouldReceive('create')->andReturn($expectedResult);
+
+    $step = new ExecuteGatewayCall($logger);
+    $context = createTestContext(['driver' => $driver]);
 
     $result = $step->handle($context, fn ($ctx) => $ctx);
 
@@ -144,16 +210,19 @@ test('execute gateway call catches exceptions', function () {
     $logger = Mockery::mock(PaymentLoggerContract::class);
     $logger->shouldReceive('info')->once();
 
-    $step = new ExecuteGatewayCall($logger);
-    $context = createTestContext();
+    $driver = Mockery::mock(GatewayDriverContract::class);
+    $driver->shouldReceive('create')->andThrow(new \Exception('Driver err'));
 
-    $context->driver->shouldReceive('create')->andThrow(new \Exception('Driver err'));
+    $step = new ExecuteGatewayCall($logger);
+    $context = createTestContext(['driver' => $driver]);
 
     $result = $step->handle($context, fn ($ctx) => $ctx);
 
     expect($result->exception)->toBeInstanceOf(\Exception::class);
     expect($result->exception->getMessage())->toBe('Driver err');
 });
+
+// ── PersistAttempt ──
 
 test('persist attempt skips if persistence disabled', function () {
     $config = Mockery::mock(PaymentConfig::class);
@@ -171,9 +240,10 @@ test('persist attempt saves error attempt', function () {
     $config->shouldReceive('shouldPersistAttempts')->andReturnTrue();
 
     $step = new PersistAttempt($config);
-    $context = createTestContext();
-    $context->paymentId = 'pay_1';
-    $context->exception = new \RuntimeException('test_err', 123);
+    $context = createTestContext([
+        'paymentId' => 'pay_1',
+        'exception' => new \RuntimeException('test_err', 123),
+    ]);
 
     $step->handle($context, fn ($ctx) => $ctx);
 
@@ -188,9 +258,10 @@ test('persist attempt saves success attempt', function () {
     $config->shouldReceive('shouldPersistAttempts')->andReturnTrue();
 
     $step = new PersistAttempt($config);
-    $context = createTestContext();
-    $context->paymentId = 'pay_1';
-    $context->result = new GatewayResult(PaymentStatus::Completed, 'ref_1');
+    $context = createTestContext([
+        'paymentId' => 'pay_1',
+        'result' => new GatewayResult(PaymentStatus::Completed, 'ref_1'),
+    ]);
 
     $step->handle($context, fn ($ctx) => $ctx);
 
@@ -198,6 +269,8 @@ test('persist attempt saves success attempt', function () {
     expect($attempt->payment_id)->toBe('pay_1');
     expect($attempt->status)->toBe(\Frolax\Payment\Enums\AttemptStatus::Succeeded);
 });
+
+// ── PersistPaymentRecord ──
 
 test('persist payment record creates record', function () {
     $config = Mockery::mock(PaymentConfig::class);
@@ -214,24 +287,29 @@ test('persist payment record creates record', function () {
     expect($payment->order_id)->toBe('order_1');
 });
 
+// ── UpdatePaymentStatus ──
+
 test('update status processes exception correctly', function () {
     $config = Mockery::mock(PaymentConfig::class);
     $config->shouldReceive('shouldPersistPayments')->andReturnTrue();
     $logger = Mockery::mock(PaymentLoggerContract::class);
     $logger->shouldReceive('error')->once();
 
-    $step = new UpdatePaymentStatus($config, $logger);
-    $context = createTestContext();
-    $context->paymentId = (string) Str::ulid();
-    $context->exception = new \Exception('fail2');
+    $paymentId = (string) Str::ulid();
 
     PaymentModel::create([
-        'id' => $context->paymentId,
+        'id' => $paymentId,
         'order_id' => 'o1',
         'gateway_name' => 'f1',
         'status' => PaymentStatus::Pending,
         'amount' => 10,
         'currency' => 'USD',
+    ]);
+
+    $step = new UpdatePaymentStatus($config, $logger);
+    $context = createTestContext([
+        'paymentId' => $paymentId,
+        'exception' => new \Exception('fail2'),
     ]);
 
     $step->handle($context, fn ($ctx) => 'next');
@@ -245,18 +323,21 @@ test('update status processes success correctly', function () {
     $logger = Mockery::mock(PaymentLoggerContract::class);
     $logger->shouldReceive('info')->once();
 
-    $step = new UpdatePaymentStatus($config, $logger);
-    $context = createTestContext();
-    $context->paymentId = (string) Str::ulid();
-    $context->result = new GatewayResult(PaymentStatus::Processing, 'ref_ok');
+    $paymentId = (string) Str::ulid();
 
     PaymentModel::create([
-        'id' => $context->paymentId,
+        'id' => $paymentId,
         'order_id' => 'o1',
         'gateway_name' => 'f1',
         'status' => PaymentStatus::Pending,
         'amount' => 10,
         'currency' => 'USD',
+    ]);
+
+    $step = new UpdatePaymentStatus($config, $logger);
+    $context = createTestContext([
+        'paymentId' => $paymentId,
+        'result' => new GatewayResult(PaymentStatus::Processing, 'ref_ok'),
     ]);
 
     $step->handle($context, fn ($ctx) => 'next');
@@ -272,17 +353,6 @@ test('update status skips if persistence disabled', function () {
     $logger = Mockery::mock(PaymentLoggerContract::class);
 
     $step = new UpdatePaymentStatus($config, $logger);
-    $context = createTestContext();
-
-    $result = $step->handle($context, fn ($ctx) => 'next');
-    expect($result)->toBe('next');
-});
-
-test('check idempotency continues if existing payment not found or is pending', function () {
-    $config = Mockery::mock(PaymentConfig::class);
-    $config->shouldReceive('shouldPersistPayments')->andReturnTrue();
-
-    $step = new CheckIdempotency($config);
     $context = createTestContext();
 
     $result = $step->handle($context, fn ($ctx) => 'next');

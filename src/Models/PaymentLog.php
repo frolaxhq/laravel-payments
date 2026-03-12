@@ -6,6 +6,20 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property string $id
+ * @property string|null $payment_id
+ * @property string|null $attempt_id
+ * @property string|null $gateway_name
+ * @property string|null $profile
+ * @property string|null $tenant_id
+ * @property string $category
+ * @property string $message
+ * @property string $level
+ * @property array<string, mixed>|null $context_flat
+ * @property array<string, mixed>|null $context_nested
+ * @property \Illuminate\Support\Carbon|null $occurred_at
+ */
 class PaymentLog extends Model
 {
     use HasUlids;

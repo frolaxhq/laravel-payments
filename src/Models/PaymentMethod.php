@@ -5,6 +5,20 @@ namespace Frolax\Payment\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property string $id
+ * @property string $gateway_name
+ * @property string|null $customer_id
+ * @property string $gateway_method_id
+ * @property string $type
+ * @property array<string, mixed>|null $details
+ * @property bool $is_default
+ * @property \Illuminate\Support\Carbon|null $last_used_at
+ * @property \Illuminate\Support\Carbon|null $expires_at
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property array<string, mixed>|null $metadata
+ */
 class PaymentMethod extends Model
 {
     use HasUlids;
@@ -13,7 +27,7 @@ class PaymentMethod extends Model
 
     public function getTable(): string
     {
-        return config('payments.tables.payment_methods', 'payment_methods');
+        return config('payments.tables.methods', 'payment_methods');
     }
 
     protected function casts(): array
@@ -66,3 +80,4 @@ class PaymentMethod extends Model
         $this->update(['is_default' => true]);
     }
 }
+

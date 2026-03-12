@@ -23,6 +23,16 @@ class GatewayRegistry
         array $capabilities = [],
         ?GatewayAddonContract $addon = null,
     ): void {
+        foreach ($capabilities as $capability) {
+            // Only validate FQCN-style capabilities (contain \)
+            // String names like 'redirect', 'webhook' are convention-based
+            if (str_contains($capability, '\\') && ! interface_exists($capability)) {
+                throw new \InvalidArgumentException(
+                    "Capability [{$capability}] is not a valid interface."
+                );
+            }
+        }
+
         $this->gateways[$key] = [
             'driver' => $driver,
             'display_name' => $displayName ?? $key,

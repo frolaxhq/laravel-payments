@@ -11,7 +11,7 @@ use Frolax\Payment\Data\Payload;
 use Frolax\Payment\Data\StatusPayload;
 use Frolax\Payment\Exceptions\UnsupportedCapabilityException;
 use Frolax\Payment\Pipeline\PaymentContext;
-use Frolax\Payment\Pipeline\Steps\CheckIdempotency;
+use Frolax\Payment\Pipeline\Steps\ResolveIdempotency;
 use Frolax\Payment\Pipeline\Steps\DispatchPaymentEvent;
 use Frolax\Payment\Pipeline\Steps\ExecuteGatewayCall;
 use Frolax\Payment\Pipeline\Steps\PersistAttempt;
@@ -77,7 +77,7 @@ class Payment
         $result = app(Pipeline::class)
             ->send($context)
             ->through([
-                CheckIdempotency::class,
+                ResolveIdempotency::class,
                 PersistPaymentRecord::class,
                 ExecuteGatewayCall::class,
                 PersistAttempt::class,
@@ -123,14 +123,22 @@ class Payment
             ]);
 
             // Update payment record if persisted
+            // Look up the internal payment model ID — not the gateway reference
+            $paymentModelId = null;
             if ($this->config->shouldPersistPayments() && $result->gatewayReference) {
-                Models\PaymentModel::where('gateway_reference', $result->gatewayReference)
+                /** @var Models\PaymentModel|null $paymentRecord */
+                $paymentRecord = Models\PaymentModel::where('gateway_reference', $result->gatewayReference)
                     ->where('gateway_name', $gateway)
-                    ->update(['status' => $result->status->value]);
+                    ->first();
+
+                if ($paymentRecord) {
+                    $paymentRecord->update(['status' => $result->status->value]);
+                    $paymentModelId = $paymentRecord->id;
+                }
             }
 
             event(new Events\PaymentVerified(
-                paymentId: $result->gatewayReference ?? '',
+                paymentId: $paymentModelId ?? $result->gatewayReference ?? '',
                 gateway: $gateway,
                 status: $result->status->value,
                 gatewayReference: $result->gatewayReference,

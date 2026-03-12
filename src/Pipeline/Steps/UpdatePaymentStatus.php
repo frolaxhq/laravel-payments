@@ -8,9 +8,11 @@ use Frolax\Payment\Enums\PaymentStatus;
 use Frolax\Payment\Models\PaymentModel;
 use Frolax\Payment\PaymentConfig;
 use Frolax\Payment\Pipeline\PaymentContext;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Update the payment record status from the gateway result.
+ * Wrapped in DB::transaction() for atomicity.
  */
 class UpdatePaymentStatus
 {
@@ -25,29 +27,31 @@ class UpdatePaymentStatus
             return $next($context);
         }
 
-        if ($context->exception) {
-            PaymentModel::where('id', $context->paymentId)->update([
-                'status' => PaymentStatus::Failed->value,
-            ]);
+        DB::transaction(function () use ($context) {
+            if ($context->exception) {
+                PaymentModel::where('id', $context->paymentId)->update([
+                    'status' => PaymentStatus::Failed->value,
+                ]);
 
-            $this->logger->error('payment.create.failed', "Payment creation failed: {$context->exception->getMessage()}", [
-                'payment' => ['id' => $context->paymentId],
-                'gateway' => ['name' => $context->gateway],
-                'error' => ['message' => $context->exception->getMessage()],
-            ]);
-        } elseif ($context->result) {
-            PaymentModel::where('id', $context->paymentId)->update([
-                'status' => $context->result->status->value,
-                'gateway_reference' => $context->result->gatewayReference,
-            ]);
+                $this->logger->error('payment.create.failed', "Payment creation failed: {$context->exception->getMessage()}", [
+                    'payment' => ['id' => $context->paymentId],
+                    'gateway' => ['name' => $context->gateway],
+                    'error' => ['message' => $context->exception->getMessage()],
+                ]);
+            } elseif ($context->result) {
+                PaymentModel::where('id', $context->paymentId)->update([
+                    'status' => $context->result->status->value,
+                    'gateway_reference' => $context->result->gatewayReference,
+                ]);
 
-            $this->logger->info('payment.created', "Payment [{$context->paymentId}] created successfully via [{$context->gateway}]", [
-                'payment' => ['id' => $context->paymentId],
-                'gateway' => ['name' => $context->gateway, 'reference' => $context->result->gatewayReference],
-                'result' => ['status' => $context->result->status->value],
-                'timing' => ['duration_ms' => $context->elapsedMs],
-            ]);
-        }
+                $this->logger->info('payment.created', "Payment [{$context->paymentId}] created successfully via [{$context->gateway}]", [
+                    'payment' => ['id' => $context->paymentId],
+                    'gateway' => ['name' => $context->gateway, 'reference' => $context->result->gatewayReference],
+                    'result' => ['status' => $context->result->status->value],
+                    'timing' => ['duration_ms' => $context->elapsedMs],
+                ]);
+            }
+        });
 
         return $next($context);
     }

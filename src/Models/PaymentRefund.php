@@ -7,6 +7,21 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property string $id
+ * @property string $payment_id
+ * @property string|null $refund_reference
+ * @property string $amount
+ * @property string $currency
+ * @property RefundStatus $status
+ * @property string|null $reason
+ * @property array<string, mixed>|null $request_payload
+ * @property array<string, mixed>|null $response_payload
+ * @property array<string, mixed>|null $metadata
+ * @property array<string, mixed>|null $gateway_data
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ */
 class PaymentRefund extends Model
 {
     use HasUlids;

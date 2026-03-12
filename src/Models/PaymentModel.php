@@ -7,6 +7,24 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property string $id
+ * @property string $order_id
+ * @property string $gateway_name
+ * @property string $profile
+ * @property string|null $tenant_id
+ * @property PaymentStatus $status
+ * @property string $amount
+ * @property string $currency
+ * @property string|null $gateway_reference
+ * @property string|null $idempotency_key
+ * @property string|null $customer_email
+ * @property string|null $customer_phone
+ * @property array<string, mixed>|null $canonical_payload
+ * @property array<string, mixed>|null $metadata
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ */
 class PaymentModel extends Model
 {
     use HasUlids;

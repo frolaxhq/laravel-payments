@@ -33,7 +33,6 @@ class WebhookRetryPolicy
         return match ($this->strategy) {
             'exponential' => $this->baseDelay * (2 ** ($currentAttempt - 1)),
             'linear' => $this->baseDelay * $currentAttempt,
-            'fixed' => $this->baseDelay,
             default => $this->baseDelay,
         };
     }

@@ -199,14 +199,18 @@ class MakeGatewayCommand extends Command
         }
         if (in_array('webhook', $capabilities)) {
             $namespace->addUse('Frolax\Payment\Contracts\SupportsWebhookVerification');
+            $namespace->addUse('Frolax\Payment\Data\WebhookData');
+            $namespace->addUse('Frolax\Payment\Enums\WebhookEventType');
             $class->addImplement('Frolax\Payment\Contracts\SupportsWebhookVerification');
         }
         if (in_array('refund', $capabilities)) {
             $namespace->addUse('Frolax\Payment\Contracts\SupportsRefund');
+            $namespace->addUse('Frolax\Payment\Data\RefundPayload');
             $class->addImplement('Frolax\Payment\Contracts\SupportsRefund');
         }
         if (in_array('status', $capabilities)) {
             $namespace->addUse('Frolax\Payment\Contracts\SupportsStatusQuery');
+            $namespace->addUse('Frolax\Payment\Data\StatusPayload');
             $class->addImplement('Frolax\Payment\Contracts\SupportsStatusQuery');
         }
 
@@ -276,12 +280,12 @@ return new GatewayResult(
 PHP
         );
 
-        $this->addCapabilityMethods($class, $capabilities);
+        $this->addCapabilityMethods($class, $capabilities, $key);
 
         return (string) $file;
     }
 
-    protected function addCapabilityMethods(ClassType $class, array $capabilities): void
+    protected function addCapabilityMethods(ClassType $class, array $capabilities, string $key): void
     {
         if (in_array('redirect', $capabilities)) {
             $class->addMethod('getRedirectUrl')
@@ -312,6 +316,21 @@ PHP
                 ->setReturnType('?string')
                 ->setBody("// TODO: Parse gateway reference from webhook payload\nreturn \$request->input('transaction_id');")
                 ->addParameter('request')->setType('Illuminate\Http\Request');
+
+            $parseData = $class->addMethod('parseWebhookData')
+                ->setPublic()
+                ->setReturnType('Frolax\Payment\Data\WebhookData')
+                ->setBody("// TODO: Parse webhook payload into canonical WebhookData DTO\nreturn new WebhookData(\n    canonicalEvent: WebhookEventType::Unknown,\n    gateway: '{$key}',\n    rawPayload: \$request->all(),\n);");
+
+            $parseData->addParameter('request')->setType('Illuminate\Http\Request');
+
+            $handleWebhook = $class->addMethod('handleWebhook')
+                ->setPublic()
+                ->setReturnType('Frolax\Payment\Data\WebhookData')
+                ->setBody("// TODO: Process push webhook and return canonical WebhookData\nreturn \$this->parseWebhookData(\$request);");
+
+            $handleWebhook->addParameter('request')->setType('Illuminate\Http\Request');
+            $handleWebhook->addParameter('credentials')->setType('Frolax\Payment\Data\Credentials');
         }
 
         if (in_array('refund', $capabilities)) {

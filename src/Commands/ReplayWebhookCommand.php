@@ -4,6 +4,7 @@ namespace Frolax\Payment\Commands;
 
 use Frolax\Payment\Contracts\CredentialsRepositoryContract;
 use Frolax\Payment\Contracts\PaymentLoggerContract;
+use Frolax\Payment\Contracts\SupportsWebhookVerification;
 use Frolax\Payment\Events\WebhookReceived;
 use Frolax\Payment\GatewayRegistry;
 use Frolax\Payment\Models\PaymentModel;
@@ -57,20 +58,30 @@ class ReplayWebhookCommand extends Command
             }
 
             // Create a synthetic request from stored payload
+            $jsonBody = json_encode($event->payload ?? []);
             $request = Request::create(
                 uri: "/payments/webhook/{$event->gateway_name}",
                 method: 'POST',
-                parameters: $event->payload ?? [],
-                server: $this->buildServerFromHeaders($event->headers ?? []),
+                server: array_merge(
+                    $this->buildServerFromHeaders($event->headers ?? []),
+                    ['CONTENT_TYPE' => 'application/json'],
+                ),
+                content: $jsonBody !== false ? $jsonBody : '{}',
             );
 
-            $result = $driver->verify($request, $creds);
+            if (! ($driver instanceof SupportsWebhookVerification)) {
+                $this->error('Driver does not support webhook verification.');
+
+                return self::FAILURE;
+            }
+
+            $webhookData = $driver->handleWebhook($request, $creds);
 
             // Update payment status if applicable
-            if (config('payments.persistence.enabled') && config('payments.persistence.payments') && $event->gateway_reference) {
+            if (config('payments.persistence.enabled') && config('payments.persistence.payments') && $event->gateway_reference && $webhookData->paymentStatus) {
                 PaymentModel::where('gateway_reference', $event->gateway_reference)
                     ->where('gateway_name', $event->gateway_name)
-                    ->update(['status' => $result->status->value]);
+                    ->update(['status' => $webhookData->paymentStatus->value]);
             }
 
             // Re-dispatch event
@@ -89,7 +100,7 @@ class ReplayWebhookCommand extends Command
                 'processed_at' => now(),
             ]);
 
-            $this->info("Webhook event [{$eventId}] replayed successfully. Status: {$result->status->value}");
+            $this->info("Webhook event [{$eventId}] replayed successfully. Status: {$webhookData->canonicalEvent->value}");
 
             return self::SUCCESS;
 

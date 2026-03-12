@@ -8,6 +8,7 @@ use Frolax\Payment\Pipeline\PaymentContext;
 
 /**
  * Execute the actual gateway driver call and measure timing.
+ * Exceptions are stored in context, never rethrown here.
  */
 class ExecuteGatewayCall
 {
@@ -23,17 +24,24 @@ class ExecuteGatewayCall
             'idempotency_key' => $context->payload->idempotencyKey,
         ]);
 
-        $context->attemptNo = 1;
-        $context->startTime = microtime(true);
+        $startTime = microtime(true);
+        $newContext = $context->withAttemptNo(1);
 
         try {
-            $context->result = $context->driver->create($context->payload, $context->credentials);
-            $context->elapsedMs = round((microtime(true) - $context->startTime) * 1000, 2);
+            $result = $newContext->driver->create($newContext->payload, $newContext->credentials);
+            $elapsedMs = round((microtime(true) - $startTime) * 1000, 2);
+
+            $newContext = $newContext
+                ->withResult($result)
+                ->withTiming($startTime, $elapsedMs);
         } catch (\Throwable $e) {
-            $context->elapsedMs = round((microtime(true) - $context->startTime) * 1000, 2);
-            $context->exception = $e;
+            $elapsedMs = round((microtime(true) - $startTime) * 1000, 2);
+
+            $newContext = $newContext
+                ->withException($e)
+                ->withTiming($startTime, $elapsedMs);
         }
 
-        return $next($context);
+        return $next($newContext);
     }
 }

@@ -10,6 +10,34 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property string $id
+ * @property string $gateway_name
+ * @property string $profile
+ * @property string|null $tenant_id
+ * @property string|null $customer_id
+ * @property string|null $customer_email
+ * @property string|null $price_id
+ * @property string $plan_id
+ * @property string|null $plan_name
+ * @property SubscriptionStatus $status
+ * @property string|null $gateway_subscription_id
+ * @property int $quantity
+ * @property string $amount
+ * @property string $currency
+ * @property string $interval
+ * @property int $interval_count
+ * @property \Illuminate\Support\Carbon|null $trial_ends_at
+ * @property \Illuminate\Support\Carbon|null $current_period_start
+ * @property \Illuminate\Support\Carbon|null $current_period_end
+ * @property \Illuminate\Support\Carbon|null $paused_at
+ * @property \Illuminate\Support\Carbon|null $cancelled_at
+ * @property \Illuminate\Support\Carbon|null $ends_at
+ * @property array<string, mixed>|null $metadata
+ * @property array<string, mixed>|null $gateway_data
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ */
 class Subscription extends Model
 {
     use HasUlids;

@@ -7,6 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property string $id
+ * @property string $subscription_id
+ * @property string $product_id
+ * @property string|null $product_name
+ * @property string|null $gateway_item_id
+ * @property int $quantity
+ * @property string|null $unit_price
+ * @property array<string, mixed>|null $metadata
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ */
 class SubscriptionItem extends Model
 {
     use HasUlids;

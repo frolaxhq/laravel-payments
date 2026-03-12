@@ -7,10 +7,12 @@ use Frolax\Payment\Enums\PaymentStatus;
 use Frolax\Payment\Models\PaymentModel;
 use Frolax\Payment\PaymentConfig;
 use Frolax\Payment\Pipeline\PaymentContext;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
  * Create the initial payment record in the database.
+ * Wrapped in DB::transaction() for atomicity.
  */
 class PersistPaymentRecord
 {
@@ -20,26 +22,29 @@ class PersistPaymentRecord
 
     public function handle(PaymentContext $context, Closure $next): mixed
     {
-        $context->paymentId = (string) Str::ulid();
+        $paymentId = (string) Str::ulid();
+        $newContext = $context->withPaymentId($paymentId);
 
         if ($this->config->shouldPersistPayments()) {
-            PaymentModel::create([
-                'id' => $context->paymentId,
-                'order_id' => $context->payload->order->id,
-                'gateway_name' => $context->gateway,
-                'profile' => $context->profile,
-                'tenant_id' => $context->tenantId,
-                'status' => PaymentStatus::Pending->value,
-                'amount' => $context->payload->money->amount,
-                'currency' => $context->payload->money->currency,
-                'idempotency_key' => $context->payload->idempotencyKey,
-                'customer_email' => $context->payload->customer?->email,
-                'customer_phone' => $context->payload->customer?->phone,
-                'canonical_payload' => $context->payload->toArray(),
-                'metadata' => $context->payload->metadata,
-            ]);
+            DB::transaction(function () use ($newContext) {
+                PaymentModel::create([
+                    'id' => $newContext->paymentId,
+                    'order_id' => $newContext->payload->order->id,
+                    'gateway_name' => $newContext->gateway,
+                    'profile' => $newContext->profile,
+                    'tenant_id' => $newContext->tenantId,
+                    'status' => PaymentStatus::Pending->value,
+                    'amount' => $newContext->payload->money->amount,
+                    'currency' => $newContext->payload->money->currency,
+                    'idempotency_key' => $newContext->payload->idempotencyKey,
+                    'customer_email' => $newContext->payload->customer?->email,
+                    'customer_phone' => $newContext->payload->customer?->phone,
+                    'canonical_payload' => $newContext->payload->toArray(),
+                    'metadata' => $newContext->payload->metadata,
+                ]);
+            });
         }
 
-        return $next($context);
+        return $next($newContext);
     }
 }

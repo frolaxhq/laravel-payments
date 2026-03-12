@@ -28,4 +28,24 @@ enum PaymentStatus: string
     {
         return $this === self::Completed;
     }
+
+    /**
+     * Check if a transition to the given status is valid.
+     */
+    public function canTransitionTo(self $next): bool
+    {
+        /** @var array<string, list<self>> $allowed */
+        $allowed = [
+            self::Pending->value => [self::Processing, self::Completed, self::Failed, self::Cancelled, self::Expired],
+            self::Processing->value => [self::Completed, self::Failed, self::Cancelled],
+            self::Completed->value => [self::Refunded, self::PartiallyRefunded],
+            self::Failed->value => [],
+            self::Cancelled->value => [],
+            self::Refunded->value => [],
+            self::PartiallyRefunded->value => [self::Refunded],
+            self::Expired->value => [],
+        ];
+
+        return in_array($next, $allowed[$this->value] ?? [], true);
+    }
 }

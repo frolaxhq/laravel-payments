@@ -52,7 +52,7 @@ class WebhookController extends Controller
                     'gateway' => ['name' => $gateway],
                 ]);
 
-                return response('Invalid signature', 403);
+                return response('Invalid signature', 401);
             }
 
             $webhookData = $driver->parseWebhookData($request);
@@ -116,17 +116,18 @@ class WebhookController extends Controller
             webhookData: $webhookData,
         ));
 
-        // Process the webhook via the driver's verify method
-        if ($creds) {
+        // Process the webhook via handleWebhook() — NOT verify().
+        // verify() is for return-URL callbacks; handleWebhook() is for push webhooks.
+        if ($driver instanceof SupportsWebhookVerification && $creds) {
             try {
-                $result = $driver->verify($request, $creds);
+                $webhookData = $driver->handleWebhook($request, $creds);
 
                 // Update payment status if we have a result and a payment record
-                if ($config->shouldPersistPayments() && $gatewayReference) {
+                if ($config->shouldPersistPayments() && $gatewayReference && $webhookData->paymentStatus) {
                     PaymentModel::query()
                         ->where('gateway_reference', $gatewayReference)
                         ->where('gateway_name', $gateway)
-                        ->update(['status' => $result->status->value]);
+                        ->update(['status' => $webhookData->paymentStatus->value]);
                 }
             } catch (Throwable $e) {
                 $logger->error('webhook.processing.failed', "Webhook processing failed: {$e->getMessage()}", [
